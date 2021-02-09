@@ -2,13 +2,13 @@ import json
 
 '''
 contains generic information about each coin. Needed to tie this
-entire ball of was together. It's in a JSON config, and read into a
+entire ball of wax together. It's in a JSON config, and read into a
 python dictionary of dictionaries. Stuff like coin name, ticker,
 category etc. NOT dynamic market information though. Thats acquired
 every hour and changes. This is anything that is mostly static about
 the coin. Since it's JSON it can be modified without concern about
 changing the schema globally.
-
+'''
 class CoinList()
 
       Data = {}
