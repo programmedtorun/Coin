@@ -28,6 +28,9 @@ class Collect(object):
                 self.cc_api_keys = json.loads(f.read())
         if coingecko:
             self.cg = CoinGeckoAPI()
+            self.cg_coin_list = self.cg.get_coins_list()
+        else:
+            self.cg_coin_list = []
         if tw:
             self.key_coin_twitter_accts = ["elliotrades",
                                            "MartiniGuyYT",
@@ -46,30 +49,85 @@ class Collect(object):
                                            access_token_key=self.tw_api_keys["TW_ACCESS_TOKEN_KEY"],
                                            access_token_secret=self.tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
 
-    # returns a json object
+    #  returns through a list of coins and removes BS coins we definitely don't care about
+    # def collect_filter(self):
+    #     cc_in_coin_list = get_cc_hash()
+
+    # returns a json object (not right this second, now returning python dict for testing
     def collect_all(self):
         py_obj = {}
-        master_list = self.get_gecko_coin_list()
+        master_list = self.cg_coin_list
         for coin in master_list:
-            # can not make the below requests because of rate limit! need to cut down on the
+            # can not make the below requests
+            # because of rate limit! need to cut down on the
             # number of coins we analyze..
-            py_obj[coin['symbol']] = {"cg_id": coin['id'],
-                                      "cg_detail": self.cg.get_coin_by_id(coin['id']),
-                                      "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
+            py_obj[coin['symbol'].upper()] = {"cg_id": coin['id']
+                                      # "cg_detail": self.cg.get_coin_by_id(coin['id']),
+                                      # "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
                                       }
-        rank_dict = self.get_top_seven_symbol()
+        rank_dict = self.get_top_seven_symbol() # adding key, value if it's a top coingecko searched coin
         for item in rank_dict:
             py_obj[item['symbol']]['market_cap_rank'] = item['market_cap_rank']
             py_obj[item['symbol']]['top_coin_score'] = item['top_coin_score']
+        status_dict = self.get_status_updates() # adding status (again only if sw release or partnership announcment
+        for item in status_dict.keys():
+            py_obj[item]['status_dict'] = status_dict[item]
         # TODO add more additions to this json object. tweets, youtube, cryptocompare
-        return json.dumps(py_obj)
+        # now i am returning a python dict for testing, however this be converted into json via something like
+        # json.dumps(py_obj)
+        return py_obj
 
-    # Returns list of coin SYMBOLS, isn't anything useful, besides symbol, this gives comprehensive symbol list
-    def get_gecko_coin_list(self):
+    # note category has 'general', 'software release' and 'partnership'
+    # we can infer that software release and partnership are good news
+    # removing 'general' category until we figure out if it is really good news, could be bad...
+    def get_status_updates(self): # added to collect_all
+        final_status_updates = {}
+        status_updates = self.cg.get_status_updates()["status_updates"]
+        for status in status_updates: # I think we only care about status updates that have a symbol (some don't and they are probably project updates that have yet to launch
+            if ('symbol' in status['project']) and (status['category'] != 'general'):
+                final_status_updates[status['project']['symbol'].upper()] = status
+        return final_status_updates
+
+    # returns a list of the top 7 searched coins on coingecko
+    # score key has a value from 0 to 6, 0 is the top searched coin
+    # {'symbol': market_cap_rank, "score": 4}
+    def get_top_seven_symbol(self): # added to collect_all
         if not self.coingecko:
             return []
         else:
-            return self.cg.get_coins_list()
+            trend = self.cg.get_search_trending()
+            top_seven = []
+            for coin in trend["coins"]:
+                top_seven.append({"symbol": coin["item"]["symbol"].upper(), "market_cap_rank": coin["item"]["market_cap_rank"],
+                                  "top_coin_score": coin["item"]["score"]})
+            return top_seven
+
+    # Removes coins from get_cc_hash() that are not trading, as of this message around 1220 coins
+    def filter_cc_hash(self):
+        hash = self.get_cc_hash()
+        keys_to_del = []
+        for key in hash:
+            if not hash[key]["IsTrading"]:
+                keys_to_del.append(key)
+        for key in keys_to_del:
+            del hash[key]
+        return hash
+
+    # will return a dictionary where the keys are coin symbols
+    # the value is very useful coin information
+    # to get coin Id call this function example:
+    # inj_id = get_cc_hash()["INJ"]["Id"]
+    def get_cc_hash(self):
+        if not self.cryptocompare:
+            return {}
+        else:
+            res = requests.get(
+                "https://min-api.cryptocompare.com/data/all/coinlist?api_key={}".format(self.cc_api_keys['CC_API_KEY']))
+            text_res = res.text
+            j_res = json.loads(text_res)
+            return j_res["Data"]
+
+    # TODO need to add below methods (general behavior to Collect class
 
     # Creates a twitter Status obj see docs:
     # https://python-twitter.readthedocs.io/en/latest/_modules/twitter/models.html#Status
@@ -80,28 +138,8 @@ class Collect(object):
             all_tweets.extend(tweets)
         return all_tweets
 
-    # returns a list of the top 7 searched coins on coingecko
-    # score key has a value from 0 to 6, 0 is the top searched coin
-    # {'symbol': market_cap_rank, "score": 4}
-    def get_top_seven_symbol(self):
-        if not self.coingecko:
-            return []
-        else:
-            trend = self.cg.get_search_trending()
-            top_seven = []
-            for coin in trend["coins"]:
-                top_seven.append({"symbol": coin["item"]["symbol"].lower(), "market_cap_rank": coin["item"]["market_cap_rank"],
-                                  "top_coin_score": coin["item"]["score"]})
-            return top_seven
 
-
-
-# TODO need to add below methods (general behavior to Collect class
-
-
-
-
-# returns dfi aggregate data
+# returns dfi aggregate data not really needed at the moment i don't think
 def get_defi_data(cgapi):
     return cgapi.get_global_decentralized_finance_defi()
 
@@ -118,24 +156,7 @@ def get_defi_data(cgapi):
 # 'project': dict --> {'type': 'string', 'id': 'string', 'name': 'string', 'symbol': 'string', 'image': dict}
 # }
 
-# note category has 'general', 'software release' and 'partnership'
-# we can infer that software release and partnership are good news
-def get_status_updates(cgapi):
-    return cgapi.get_status_updates()["status_updates"]
-
-
-# will return a dictionary where the keys are coin symbols
-# the value is very useful coin information
-# to get coin Id call this function example:
-# inj_id = get_cc_hash()["INJ"]["Id"]
-def get_cc_hash():
-    res = requests.get("https://min-api.cryptocompare.com/data/all/coinlist?api_key={}".format(cc_api_keys['CC_API_KEY']))
-    text_res = res.text
-    j_res = json.loads(text_res)
-    return j_res["Data"]
-
-
-# will get all social data for a coin, must use crypto compare (cc) coin ids
+# will get all social data for ONE COIN, must use crypto compare (cc) coin ids
 def get_social(coin_id):
     res = requests.get("https://min-api.cryptocompare.com/data/social/coin/latest?api_key={}&coinId={}".format(cc_api_keys['CC_API_KEY'], coin_id))
     text_res = res.text
