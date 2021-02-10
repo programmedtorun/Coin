@@ -49,8 +49,13 @@ class Collect(object):
     def collect_all(self):
         py_obj = {}
         master_list = self.get_gecko_coin_list()
-
-        return json.dumps(py_obj)
+        for symbol in master_list:
+            py_obj[symbol] = {}
+        rank_dict = self.get_top_seven_symbol()
+        for item in rank_dict:
+            py_obj[item['symbol']]['market_cap_rank'] = item['market_cap_rank']
+            py_obj[item['symbol']]['top_coin_score'] = item['score']
+        # return json.dumps(py_obj)
 
     # Returns list of coin SYMBOLS, isn't anything useful, besides symbol, this gives comprehensive symbol list
     def get_gecko_coin_list(self):
@@ -69,14 +74,18 @@ class Collect(object):
         return all_tweets
 
     # returns a list of the top 7 searched coins on coingecko
-    # item[0] is the top searched coin
-    # {'symbol': market_cap_rank}
+    # score key has a value from 0 to 6, 0 is the top searched coin
+    # {'symbol': market_cap_rank, "score": 4}
     def get_top_seven_symbol(self):
-        trend = self.cg.get_search_trending()
-        top_seven = []
-        for coin in trend["coins"]:
-            top_seven.append({coin["item"]["symbol"]: coin["item"]["market_cap_rank"]})
-        return top_seven
+        if not self.coingecko:
+            return []
+        else:
+            trend = self.cg.get_search_trending()
+            top_seven = []
+            for coin in trend["coins"]:
+                top_seven.append({"symbol": coin["item"]["symbol"].lower(), "market_cap_rank": coin["item"]["market_cap_rank"],
+                                  "top_coin_score": coin["item"]["score"]})
+            return top_seven
 
 
 
