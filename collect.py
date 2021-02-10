@@ -14,7 +14,7 @@ import twitter
 class Collect(object):
 
     # defines the api's that we want to pull in
-    def __init__(self, coingecko=false, tw=false, youtube=false, cryptocompare=false):
+    def __init__(self, coingecko=False, tw=False, youtube=False, cryptocompare=False):
         self.coingecko = coingecko
         self.tw = tw
         self.youtube = youtube
@@ -44,35 +44,42 @@ class Collect(object):
                                            consumer_secret=self.tw_api_keys["TW_SECRET_KEY"],
                                            access_token_key=self.tw_api_keys["TW_ACCESS_TOKEN_KEY"],
                                            access_token_secret=self.tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
+    # returns a json object 
+    def collect_all(self):
+
+
+    def get_gecko_coin_list(self):
+        if not self.coingecko:
+            return []
+        else:
+            return self.cg.get_coins_list()
+
+    # Creates a twitter Status obj see docs:
+    # https://python-twitter.readthedocs.io/en/latest/_modules/twitter/models.html#Status
+    def get_tw_status_list(self, tweet_count):
+        all_tweets = []
+        for tweeter in self.key_coin_twitter_accts:
+            tweets = self.twitter_api.GetUserTimeline(screen_name=tweeter, count=tweet_count)
+            all_tweets.extend(tweets)
+        return all_tweets
+
+    # returns a list of the top 7 searched coins on coingecko
+    # item[0] is the top searched coin
+    # {'symbol': market_cap_rank}
+    def get_top_seven_symbol(self):
+        trend = self.cg.get_search_trending()
+        top_seven = []
+        for coin in trend["coins"]:
+            top_seven.append({coin["item"]["symbol"]: coin["item"]["market_cap_rank"]})
+        return top_seven
 
 
 
 
-# Creates a twitter Status obj see docs:
-# https://python-twitter.readthedocs.io/en/latest/_modules/twitter/models.html#Status
-def get_status_list(twitter_user, tweet_count, tw_api):
-    return tw_api.GetUserTimeLine(screen_name=twitter_user, count=tweet_count)
 
 
-# takes CoinGeckoAPI() obj
-# returns a list of the top 7 searched coins on coingecko
-# returned coins are dicts
-# {
-# 'id': 'string',
-# 'name': 'string',
-# 'symbol': 'string',
-# 'market_cap_rank': int,
-# 'thumb': 'string',
-# 'large': 'string',
-# 'score': int
-# }
 
-def get_top_seven_symbol(cgapi):
-    trend = cgapi.get_search_trending()
-    top_seven = []
-    for coin in trend["coins"]:
-        top_seven.append(coin["item"])
-    return top_seven
+
 
 # returns dfi aggregate data
 def get_defi_data(cgapi):
@@ -123,21 +130,21 @@ def get_mk_chart(symbol, vs_currency, num_days, cgapi):
 
 
 # api key and coin tubers' urls
-key = ytd_api_keys['API_KEY_ID']
-et_URL = "https://www.googleapis.com/youtube/v3/search?" \
-         "key={}&" \
-         "channelId=UCMtJYS0PrtiUwlk6zjGDEMA&part=snippet,id&order=date&maxResults=20".format(key)
-mg_URL = "https://www.googleapis.com/youtube/v3/search?" \
-         "key={}&" \
-         "channelId=UCytNzxSmUqEBychgoKoQssw&part=snippet,id&order=date&maxResults=20".format(key)
-it_URL = "https://www.googleapis.com/youtube/v3/search?" \
-         "key={}&" \
-         "channelId=UCrYmtJBtLdtm2ov84ulV-yg&part=snippet,id&order=date&maxResults=20".format(key)
-sm_URL = "https://www.googleapis.com/youtube/v3/search?" \
-         "key={}&" \
-         "channelId=UCCmJln4C_CszIusbJ_MHmfQ&part=snippet,id&order=date&maxResults=20".format(key)
-
-coin_tubers = {"Elliot": et_URL, "Martini": mg_URL, "Ivan": it_URL, "Suppoman": sm_URL}
+#key = ytd_api_keys['API_KEY_ID']
+# et_URL = "https://www.googleapis.com/youtube/v3/search?" \
+#          "key={}&" \
+#          "channelId=UCMtJYS0PrtiUwlk6zjGDEMA&part=snippet,id&order=date&maxResults=20".format(key)
+# mg_URL = "https://www.googleapis.com/youtube/v3/search?" \
+#          "key={}&" \
+#          "channelId=UCytNzxSmUqEBychgoKoQssw&part=snippet,id&order=date&maxResults=20".format(key)
+# it_URL = "https://www.googleapis.com/youtube/v3/search?" \
+#          "key={}&" \
+#          "channelId=UCrYmtJBtLdtm2ov84ulV-yg&part=snippet,id&order=date&maxResults=20".format(key)
+# sm_URL = "https://www.googleapis.com/youtube/v3/search?" \
+#          "key={}&" \
+#          "channelId=UCCmJln4C_CszIusbJ_MHmfQ&part=snippet,id&order=date&maxResults=20".format(key)
+#
+# coin_tubers = {"Elliot": et_URL, "Martini": mg_URL, "Ivan": it_URL, "Suppoman": sm_URL}
 
 
 # Look at coin tuber's youtube channel and get the id of their *second* to last video
