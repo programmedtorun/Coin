@@ -9,6 +9,7 @@ from collections import Counter
 import requests
 import json
 import twitter
+import time
 
 
 class Collect(object):
@@ -49,20 +50,26 @@ class Collect(object):
     def collect_all(self):
         py_obj = {}
         master_list = self.get_gecko_coin_list()
-        for symbol in master_list:
-            py_obj[symbol] = {}
+        for coin in master_list:
+            # can not make the below requests because of rate limit! need to cut down on the
+            # number of coins we analyze..
+            py_obj[coin['symbol']] = {"cg_id": coin['id'],
+                                      "cg_detail": self.cg.get_coin_by_id(coin['id']),
+                                      "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
+                                      }
         rank_dict = self.get_top_seven_symbol()
         for item in rank_dict:
             py_obj[item['symbol']]['market_cap_rank'] = item['market_cap_rank']
-            py_obj[item['symbol']]['top_coin_score'] = item['score']
-        # return json.dumps(py_obj)
+            py_obj[item['symbol']]['top_coin_score'] = item['top_coin_score']
+        # TODO add more additions to this json object. tweets, youtube, cryptocompare
+        return json.dumps(py_obj)
 
     # Returns list of coin SYMBOLS, isn't anything useful, besides symbol, this gives comprehensive symbol list
     def get_gecko_coin_list(self):
         if not self.coingecko:
             return []
         else:
-            return [s.get('symbol') for s in self.cg.get_coins_list()]
+            return self.cg.get_coins_list()
 
     # Creates a twitter Status obj see docs:
     # https://python-twitter.readthedocs.io/en/latest/_modules/twitter/models.html#Status
@@ -89,8 +96,7 @@ class Collect(object):
 
 
 
-
-
+# TODO need to add below methods (general behavior to Collect class
 
 
 
