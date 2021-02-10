@@ -44,15 +44,20 @@ class Collect(object):
                                            consumer_secret=self.tw_api_keys["TW_SECRET_KEY"],
                                            access_token_key=self.tw_api_keys["TW_ACCESS_TOKEN_KEY"],
                                            access_token_secret=self.tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
-    # returns a json object 
+
+    # returns a json object
     def collect_all(self):
+        py_obj = {}
+        master_list = self.get_gecko_coin_list()
 
+        return json.dumps(py_obj)
 
+    # Returns list of coin SYMBOLS, isn't anything useful, besides symbol, this gives comprehensive symbol list
     def get_gecko_coin_list(self):
         if not self.coingecko:
             return []
         else:
-            return self.cg.get_coins_list()
+            return [s.get('symbol') for s in self.cg.get_coins_list()]
 
     # Creates a twitter Status obj see docs:
     # https://python-twitter.readthedocs.io/en/latest/_modules/twitter/models.html#Status
