@@ -19,37 +19,33 @@ class Collect(object):
         self.tw = tw
         self.youtube = youtube
         self.cryptocompare = cryptocompare
-
+        if youtube:
+            with open('YTD_API.json', 'r') as f:
+                self.ytd_api_keys = json.loads(f.read())
+        if cryptocompare:
+            with open('CC_API_KEY_FILE.json', 'r') as f:
+                self.cc_api_keys = json.loads(f.read())
         if coingecko:
             self.cg = CoinGeckoAPI()
         if tw:
-            self.twitter_api = twitter.Api(consumer_key=tw_api_keys["TW_API_KEY"],
-                                           consumer_secret=tw_api_keys["TW_SECRET_KEY"],
-                                           access_token_key=tw_api_keys["TW_ACCESS_TOKEN_KEY"],
-                                           access_token_secret=tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
+            self.key_coin_twitter_accts = ["elliotrades",
+                                           "MartiniGuyYT",
+                                           "IvanOnTech",
+                                           "elonmusk",
+                                           "michael_saylor",
+                                           "MichaelSuppo",
+                                           "boxmining",
+                                           "AdamHODL",
+                                           "CryptosR_Us"
+                                           ]
+            with open('TW_KEY_FILE.json', 'r') as f:
+                self.tw_api_keys = json.loads(f.read())
+            self.twitter_api = twitter.Api(consumer_key=self.tw_api_keys["TW_API_KEY"],
+                                           consumer_secret=self.tw_api_keys["TW_SECRET_KEY"],
+                                           access_token_key=self.tw_api_keys["TW_ACCESS_TOKEN_KEY"],
+                                           access_token_secret=self.tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
 
 
-
-
-key_file = 'YTD_API.json'
-with open(key_file, 'r') as f:
-    ytd_api_keys = json.loads(f.read())
-
-cc_key_file = 'CC_API_KEY_FILE.json'
-with open(cc_key_file, 'r') as f:
-    cc_api_keys = json.loads(f.read())
-
-tw_key_file = 'TW_KEY_FILE.json'
-with open(tw_key_file, 'r') as f:
-    tw_api_keys = json.loads(f.read())
-
-cg = CoinGeckoAPI()
-
-
-api = twitter.Api(consumer_key=tw_api_keys["TW_API_KEY"],
-                  consumer_secret=tw_api_keys["TW_SECRET_KEY"],
-                  access_token_key=tw_api_keys["TW_ACCESS_TOKEN_KEY"],
-                  access_token_secret=tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
 
 
 # Creates a twitter Status obj see docs:
