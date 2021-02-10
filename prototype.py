@@ -8,6 +8,7 @@ from pandas_datareader import data as pdr
 from collections import Counter
 import requests
 import json
+import twitter
 
 
 key_file = 'YTD_API.json'
@@ -18,7 +19,23 @@ cc_key_file = 'CC_API_KEY_FILE.json'
 with open(cc_key_file, 'r') as f:
     cc_api_keys = json.loads(f.read())
 
+tw_key_file = 'TW_KEY_FILE.json'
+with open(tw_key_file, 'r') as f:
+    tw_api_keys = json.loads(f.read())
+
 cg = CoinGeckoAPI()
+
+
+api = twitter.Api(consumer_key=tw_api_keys["TW_API_KEY"],
+                  consumer_secret=tw_api_keys["TW_SECRET_KEY"],
+                  access_token_key=tw_api_keys["TW_ACCESS_TOKEN_KEY"],
+                  access_token_secret=tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
+
+
+# Creates a twitter Status obj see docs:
+# https://python-twitter.readthedocs.io/en/latest/_modules/twitter/models.html#Status
+def get_status_list(twitter_user, tweet_count, tw_api):
+    return tw_api.GetUserTimeLine(screen_name=twitter_user, count=tweet_count)
 
 
 # takes CoinGeckoAPI() obj
@@ -89,7 +106,6 @@ def get_mk_chart(symbol, vs_currency, num_days, cgapi):
     return mk_chart["prices"]
 
 
-print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 # api key and coin tubers' urls
 key = ytd_api_keys['API_KEY_ID']
 et_URL = "https://www.googleapis.com/youtube/v3/search?" \
