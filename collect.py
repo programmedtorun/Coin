@@ -32,6 +32,7 @@ class Collect(object):
         else:
             self.cg_coin_list = []
         if tw:
+
             self.key_coin_twitter_accts = ["elliotrades",
                                            "MartiniGuyYT",
                                            "IvanOnTech",
@@ -48,23 +49,46 @@ class Collect(object):
                                            consumer_secret=self.tw_api_keys["TW_SECRET_KEY"],
                                            access_token_key=self.tw_api_keys["TW_ACCESS_TOKEN_KEY"],
                                            access_token_secret=self.tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
+        self.words_not_good_coins = ["MISS", "FOR", "ON", "YOU", "BEST", "IN", "WHO", "TIME", "OF",
+                                     "NEXT", "EVENT", "ARE", "ME", "LOT", "MORE", "AND", "LIVE", "TODAY", "ONE"]
 
-    #  returns through a list of coins and removes BS coins we definitely don't care about
-    # def collect_filter(self):
-    #     cc_in_coin_list = get_cc_hash()
+    # TODO fix weird bug - multiple 'UNI' keys perhaps will only use cryptocompare API though
+    def delete_extra_uni(self):
+        idx_to_del = []
+        ct = 0
+        c_list = self.cg_coin_list
+        for coin in c_list:
+            if coin['id'] == "unicorn-token" or coin['id'] == 'universe-token':
+                idx_to_del.append(ct)
+                print("appending index: {}".format(ct))
+            ct += 1
+        for blah in idx_to_del:
+            print("index to delete is: ")
+            del c_list[blah]
+        return c_list
 
-    # returns a json object (not right this second, now returning python dict for testing
-    def collect_all(self):
+    # returns a json object, not right this second, now returning python dict for testing
+    # we might just use cryptocompare for dynamic config creation instead of coin gecko
+    def collect_all(self, tweet_count):
         py_obj = {}
-        master_list = self.cg_coin_list
+        master_list = self.delete_extra_uni()
+        tweeted_coins = self.get_coins_in_recent_tweets(tweet_count)  # returns a list of coins coin tweeters have tweeted last (arg) tweets
         for coin in master_list:
             # can not make the below requests
             # because of rate limit! need to cut down on the
             # number of coins we analyze..
-            py_obj[coin['symbol'].upper()] = {"cg_id": coin['id']
-                                      # "cg_detail": self.cg.get_coin_by_id(coin['id']),
-                                      # "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
-                                      }
+            if (coin['symbol'].upper() in tweeted_coins) or (coin['name'].upper() in tweeted_coins) or (coin['id'].upper() in tweeted_coins):
+                py_obj[coin['symbol'].upper()] = {"cg_id": coin['id'],
+                                                  "tweeted": True
+                                                  # "cg_detail": self.cg.get_coin_by_id(coin['id']),
+                                                  # "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
+                                                  }
+            else:
+                py_obj[coin['symbol'].upper()] = {"cg_id": coin['id'],
+                                                  "tweeted": False
+                                                  # "cg_detail": self.cg.get_coin_by_id(coin['id']),
+                                                  # "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
+                                                  }
         rank_dict = self.get_top_seven_symbol() # adding key, value if it's a top coingecko searched coin
         for item in rank_dict:
             py_obj[item['symbol']]['market_cap_rank'] = item['market_cap_rank']
@@ -127,18 +151,47 @@ class Collect(object):
             j_res = json.loads(text_res)
             return j_res["Data"]
 
-    # TODO need to add below methods (general behavior to Collect class
-
     # Creates a twitter Status obj see docs:
     # https://python-twitter.readthedocs.io/en/latest/_modules/twitter/models.html#Status
+    # this returns 1 list of every one in key_coin_twitter_accts each list element is one word
     def get_tw_status_list(self, tweet_count):
         all_tweets = []
         for tweeter in self.key_coin_twitter_accts:
             tweets = self.twitter_api.GetUserTimeline(screen_name=tweeter, count=tweet_count)
-            all_tweets.extend(tweets)
+            tweets = [tweet.text.split() for tweet in tweets]
+            flat_list = [item.upper() for sublist in tweets for item in sublist]
+            all_tweets.extend(flat_list)
         return all_tweets
 
+    def get_coins_in_recent_tweets(self, tweet_count): # added to collect_all
+        tweet_list = self.get_tw_status_list(tweet_count)
+        filtered_hash = list(self.filter_cc_hash().keys())
+        full_coin_list = []
+        for coin in self.cg_coin_list:
+            if coin['symbol'].upper() in filtered_hash:
+                full_coin_list.append(coin['id'].upper())
+                full_coin_list.append(coin['symbol'].upper())
+                full_coin_list.append(coin['name'].upper())
+        dollar_coin_list = [("$" + coin) for coin in full_coin_list]
+        hashtag_coin_list = [("#" + coin) for coin in full_coin_list]
+        dollar_f_hash_lst = [("$" + coin) for coin in filtered_hash]
+        hashtag_f_hash_lst = [("#" + coin) for coin in filtered_hash]
+        added_list = filtered_hash + full_coin_list + dollar_coin_list + \
+                    hashtag_coin_list + dollar_f_hash_lst + hashtag_f_hash_lst
+        final_list = list(set(added_list) - set(self.words_not_good_coins))
+        return list(set(tweet_list) & set(final_list))
 
+
+    # will get all social data for ONE COIN, must use crypto compare (cc) coin ids
+    def get_social(self, coin_id):
+        res = requests.get("https://min-api.cryptocompare.com/data/social/coin/latest?api_key={}&coinId={}".format(
+            cc_api_keys['CC_API_KEY'], coin_id))
+        text_res = res.text
+        j_res = json.loads(text_res)
+        print(j_res)
+
+
+# TODO need to add below methods (general behavior to Collect class
 # returns dfi aggregate data not really needed at the moment i don't think
 def get_defi_data(cgapi):
     return cgapi.get_global_decentralized_finance_defi()
@@ -155,14 +208,6 @@ def get_defi_data(cgapi):
 # 'pin': boolean,
 # 'project': dict --> {'type': 'string', 'id': 'string', 'name': 'string', 'symbol': 'string', 'image': dict}
 # }
-
-# will get all social data for ONE COIN, must use crypto compare (cc) coin ids
-def get_social(coin_id):
-    res = requests.get("https://min-api.cryptocompare.com/data/social/coin/latest?api_key={}&coinId={}".format(cc_api_keys['CC_API_KEY'], coin_id))
-    text_res = res.text
-    j_res = json.loads(text_res)
-    print(j_res)
-
 
 # returns array of arrays price of asset vs currency
 def get_mk_chart(symbol, vs_currency, num_days, cgapi):
@@ -216,7 +261,7 @@ def create_transcrpt_arry(tuber_name, all_vids):
 
 
 def get_coin_list():
-    coin_list = cg.get_coins_list()
+    coin_list = self.cg_coin_list
     coin_name_list = []
     for coin in coin_list:
         # coin_name_list.append(coin["symbol"].lower()) # maybe we do not include symbol (ticker) many common words
