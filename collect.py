@@ -49,7 +49,7 @@ class Collect(object):
                                            consumer_secret=self.tw_api_keys["TW_SECRET_KEY"],
                                            access_token_key=self.tw_api_keys["TW_ACCESS_TOKEN_KEY"],
                                            access_token_secret=self.tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
-        self.words_not_good_coins = ["MISS", "FOR", "ON", "YOU", "BEST", "IN", "WHO", "TIME",
+        self.ignore_words = ["MISS", "FOR", "ON", "YOU", "BEST", "IN", "WHO", "TIME",
                                      "OF", "CHANGE", "SOON", "NEXT", "EVENT", "ARE", "ME", "LOT",
                                      "MORE", "AND", "LIVE", "TODAY", "ONE", "JUST", "KEEP", "NOW",
                                      "WHEN", "OUR", "GOT", "NEWS", "CASH", "NARRATIVE", "JOB", "SMART", "GAS"]
@@ -71,7 +71,7 @@ class Collect(object):
 
     # TODO create filter by mkt cap
 
-    # will return a json object, python dict for testing
+    # will return a json object, now returning python dict for testing
     # would like to add detail keys, but pushes api rate limits:
     #       "cg_detail": self.cg.get_coin_by_id(coin['id']),
     def collect_all(self, tweet_count):
@@ -94,9 +94,6 @@ class Collect(object):
             print("tickers with status dict: {}".format(item))
             if item.upper() in cc_master_list:
                 cc_master_list[item.upper()]['status_dict'] = status_dict[item]
-        # TODO add more additions to this json object. tweets, youtube, cryptocompare
-        # now i am returning a python dict for testing, however this be converted into json via something like
-        # json.dumps(py_obj)
         return cc_master_list
 
     # note category has 'general', 'software release' and 'partnership'
@@ -177,7 +174,7 @@ class Collect(object):
         hashtag_f_hash_lst = [("#" + coin) for coin in filtered_hash]
         added_list = filtered_hash + full_coin_list + dollar_coin_list + \
                     hashtag_coin_list + dollar_f_hash_lst + hashtag_f_hash_lst
-        joined_list = list(set(added_list) - set(self.words_not_good_coins))
+        joined_list = list(set(added_list) - set(self.ignore_words))
         tw_joined_list = list(set(tweet_list) & set(joined_list))
         print("tweet list and joined list: {}".format(tw_joined_list))
         final_list = []
@@ -237,7 +234,7 @@ class Collect(object):
                 comparison_list.append(coin['id'].upper())
                 comparison_list.append(coin['symbol'].upper())
                 comparison_list.append(coin['name'].upper())
-        joined_list = list(set(comparison_list) - set(self.words_not_good_coins))
+        joined_list = list(set(comparison_list) - set(self.ignore_words))
         return joined_list
 
     # get the common words (cw) between the two lists from
