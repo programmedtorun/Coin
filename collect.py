@@ -49,8 +49,10 @@ class Collect(object):
                                            consumer_secret=self.tw_api_keys["TW_SECRET_KEY"],
                                            access_token_key=self.tw_api_keys["TW_ACCESS_TOKEN_KEY"],
                                            access_token_secret=self.tw_api_keys["TW_ACCESS_TOKEN_SECRET"])
-        self.words_not_good_coins = ["MISS", "FOR", "ON", "YOU", "BEST", "IN", "WHO", "TIME", "OF",
-                                     "NEXT", "EVENT", "ARE", "ME", "LOT", "MORE", "AND", "LIVE", "TODAY", "ONE"]
+        self.words_not_good_coins = ["MISS", "FOR", "ON", "YOU", "BEST", "IN", "WHO", "TIME",
+                                     "OF", "CHANGE", "SOON", "NEXT", "EVENT", "ARE", "ME", "LOT",
+                                     "MORE", "AND", "LIVE", "TODAY", "ONE", "JUST", "KEEP", "NOW",
+                                     "WHEN", "OUR", "GOT", "NEWS", "CASH", "NARRATIVE", "JOB", "SMART", "GAS"]
 
     # TODO fix weird bug - multiple 'UNI' keys perhaps will only use cryptocompare API though
     def delete_extra_uni(self):
@@ -63,43 +65,39 @@ class Collect(object):
                 print("appending index: {}".format(ct))
             ct += 1
         for blah in idx_to_del:
-            print("index to delete is: ")
+            print("item to delete is: {}".format(c_list[blah]))
             del c_list[blah]
         return c_list
 
-    # returns a json object, not right this second, now returning python dict for testing
-    # we might just use cryptocompare for dynamic config creation instead of coin gecko
+    # TODO create filter by mkt cap
+
+    # will return a json object, python dict for testing
+    # would like to add detail keys, but pushes api rate limits:
+    #       "cg_detail": self.cg.get_coin_by_id(coin['id']),
     def collect_all(self, tweet_count):
-        py_obj = {}
-        master_list = self.delete_extra_uni()
-        tweeted_coins = self.get_coins_in_recent_tweets(tweet_count)  # returns a list of coins coin tweeters have tweeted last (arg) tweets
-        for coin in master_list:
-            # can not make the below requests
-            # because of rate limit! need to cut down on the
-            # number of coins we analyze..
-            if (coin['symbol'].upper() in tweeted_coins) or (coin['name'].upper() in tweeted_coins) or (coin['id'].upper() in tweeted_coins):
-                py_obj[coin['symbol'].upper()] = {"cg_id": coin['id'],
-                                                  "tweeted": True
-                                                  # "cg_detail": self.cg.get_coin_by_id(coin['id']),
-                                                  # "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
-                                                  }
-            else:
-                py_obj[coin['symbol'].upper()] = {"cg_id": coin['id'],
-                                                  "tweeted": False
-                                                  # "cg_detail": self.cg.get_coin_by_id(coin['id']),
-                                                  # "cg_status_update": self.cg.get_coin_status_updates_by_id(coin['id'])
-                                                  }
-        rank_dict = self.get_top_seven_symbol() # adding key, value if it's a top coingecko searched coin
+        cg_master_list = self.delete_extra_uni()
+        cc_master_list = self.filter_cc_hash()
+        tc = self.get_coins_in_recent_tweets(tweet_count)  # tweeted coins
+        for coin in cg_master_list:  # adding tweeted boolean key (if recently tweeted by self.key_coin_twitter_accts)
+            if coin['symbol'].upper() in cc_master_list:
+                if (coin['symbol'].upper() in tc) or (coin['name'].upper() in tc) or (coin['id'].upper() in tc):
+                    cc_master_list[coin['symbol'].upper()]["tweeted"] = True
+                else:
+                    cc_master_list[coin['symbol'].upper()]["tweeted"] = False
+        rank_dict = self.get_top_seven_symbol()  # adding key, value if it's a top coingecko searched coin
         for item in rank_dict:
-            py_obj[item['symbol']]['market_cap_rank'] = item['market_cap_rank']
-            py_obj[item['symbol']]['top_coin_score'] = item['top_coin_score']
-        status_dict = self.get_status_updates() # adding status (again only if sw release or partnership announcment
+            if item['symbol'].upper() in cc_master_list:
+                cc_master_list[item['symbol']]['market_cap_rank'] = item['market_cap_rank']
+                cc_master_list[item['symbol']]['top_coin_score'] = item['top_coin_score']
+        status_dict = self.get_status_updates()  # adding status (again only if sw release or partnership announcement
         for item in status_dict.keys():
-            py_obj[item]['status_dict'] = status_dict[item]
+            print("tickers with status dict: {}".format(item))
+            if item.upper() in cc_master_list:
+                cc_master_list[item.upper()]['status_dict'] = status_dict[item]
         # TODO add more additions to this json object. tweets, youtube, cryptocompare
         # now i am returning a python dict for testing, however this be converted into json via something like
         # json.dumps(py_obj)
-        return py_obj
+        return cc_master_list
 
     # note category has 'general', 'software release' and 'partnership'
     # we can infer that software release and partnership are good news
@@ -127,6 +125,7 @@ class Collect(object):
             return top_seven
 
     # Removes coins from get_cc_hash() that are not trading, as of this message around 1220 coins
+    # results in a master list of about 4846
     def filter_cc_hash(self):
         hash = self.get_cc_hash()
         keys_to_del = []
@@ -139,8 +138,7 @@ class Collect(object):
 
     # will return a dictionary where the keys are coin symbols
     # the value is very useful coin information
-    # to get coin Id call this function example:
-    # inj_id = get_cc_hash()["INJ"]["Id"]
+    # do not call this function many times
     def get_cc_hash(self):
         if not self.cryptocompare:
             return {}
@@ -163,6 +161,7 @@ class Collect(object):
             all_tweets.extend(flat_list)
         return all_tweets
 
+    # get's tweet text and coin lists, parses through and finds common words
     def get_coins_in_recent_tweets(self, tweet_count): # added to collect_all
         tweet_list = self.get_tw_status_list(tweet_count)
         filtered_hash = list(self.filter_cc_hash().keys())
@@ -178,11 +177,88 @@ class Collect(object):
         hashtag_f_hash_lst = [("#" + coin) for coin in filtered_hash]
         added_list = filtered_hash + full_coin_list + dollar_coin_list + \
                     hashtag_coin_list + dollar_f_hash_lst + hashtag_f_hash_lst
-        final_list = list(set(added_list) - set(self.words_not_good_coins))
-        return list(set(tweet_list) & set(final_list))
+        joined_list = list(set(added_list) - set(self.words_not_good_coins))
+        tw_joined_list = list(set(tweet_list) & set(joined_list))
+        print("tweet list and joined list: {}".format(tw_joined_list))
+        final_list = []
+        for elm in tw_joined_list:  # Removing $ or # in symbols
+            if elm[0] == "$" or elm[0] == "#":
+                final_list.append(elm[1:])
+            else:
+                final_list.append(elm)
+        return final_list
 
+    # returns dict of coin youtubers
+    def yt_urls(self):
+        key = self.ytd_api_keys['API_KEY_ID']
+        et_url = "https://www.googleapis.com/youtube/v3/search?" \
+                 "key={}&" \
+                 "channelId=UCMtJYS0PrtiUwlk6zjGDEMA&part=snippet,id&order=date&maxResults=20".format(key)
+        mg_url = "https://www.googleapis.com/youtube/v3/search?" \
+                 "key={}&" \
+                 "channelId=UCytNzxSmUqEBychgoKoQssw&part=snippet,id&order=date&maxResults=20".format(key)
+        it_url = "https://www.googleapis.com/youtube/v3/search?" \
+                 "key={}&" \
+                 "channelId=UCrYmtJBtLdtm2ov84ulV-yg&part=snippet,id&order=date&maxResults=20".format(key)
+        sm_urL = "https://www.googleapis.com/youtube/v3/search?" \
+                 "key={}&" \
+                 "channelId=UCCmJln4C_CszIusbJ_MHmfQ&part=snippet,id&order=date&maxResults=20".format(key)
+        return {"Elliot": et_url, "Martini": mg_url, "Ivan": it_url, "Suppoman": sm_urL}
+
+    # Look at coin tuber's youtube channel and get the id of their *second* most recent video
+    # get video info - returns dict
+    def get_vid_info(self, ct):
+        all_vid_info = {}
+        for tuber in ct:
+            res = requests.get(ct[tuber])
+            text_res = res.text
+            channel_vids = json.loads(text_res)
+            latest_vid = channel_vids["items"][1]  # latest video no subtitles!:/!will have to get 2nd latest([1])
+            all_vid_info[tuber] = {}
+            all_vid_info[tuber]["vid_name"] = latest_vid["snippet"]["title"]
+            all_vid_info[tuber]["video_id"] = latest_vid["id"]["videoId"]
+        return all_vid_info
+
+    # Once we have the video's id, we can parse the transcript of the video
+    # takes a tuber's name and a hash of all tubers video info - return value from get_vid_info()
+    def create_transcrpt_ary(self, tuber_name):
+        transcript_obj = YouTubeTranscriptApi.get_transcript(self.get_vid_info(self.yt_urls())[tuber_name]["video_id"])
+        transcript = ""
+        for di in transcript_obj:
+            transcript += di["text"].upper()
+            transcript += " "
+        return transcript.split()
+
+    def get_simple_coin_list(self):
+        filtered_hash = list(self.filter_cc_hash().keys())
+        comparison_list = []
+        for coin in self.cg_coin_list:
+            if coin['symbol'].upper() in filtered_hash:
+                comparison_list.append(coin['id'].upper())
+                comparison_list.append(coin['symbol'].upper())
+                comparison_list.append(coin['name'].upper())
+        joined_list = list(set(comparison_list) - set(self.words_not_good_coins))
+        return joined_list
+
+    # get the common words (cw) between the two lists from
+    # create_transcript_arry() and get_simple_coin_list()
+    # generates a list of tuples with 2 values, common word (coin) and frequency said word appears in transcript
+    def get_tuber_coin_mentions(self, tuber_name):
+        transcript = self.create_transcrpt_ary(tuber_name)
+        cl = self.get_simple_coin_list()
+        common_words = list(set(transcript) & set(cl))
+        word_freq = []
+        for wd in transcript:
+            word_freq.append(transcript.count(wd))
+        words_plus_freq = list(zip(transcript, word_freq))
+        tuple_list_of_freq = []
+        for common_word in common_words:
+            index = transcript.index(common_word)
+            tuple_list_of_freq.append(words_plus_freq[index])
+        return tuple_list_of_freq
 
     # will get all social data for ONE COIN, must use crypto compare (cc) coin ids
+    # this can hone in and further analyze coins that pop up on first scan
     def get_social(self, coin_id):
         res = requests.get("https://min-api.cryptocompare.com/data/social/coin/latest?api_key={}&coinId={}".format(
             cc_api_keys['CC_API_KEY'], coin_id))
@@ -191,100 +267,16 @@ class Collect(object):
         print(j_res)
 
 
-# TODO need to add below methods (general behavior to Collect class
-# returns dfi aggregate data not really needed at the moment i don't think
-def get_defi_data(cgapi):
-    return cgapi.get_global_decentralized_finance_defi()
-
-
-# returns list of dicts
-
-# {
-# 'description': 'string',
-# 'category': 'string',
-# 'created_at': '2021-02-03T17:54:34.274Z',
-# 'user': 'string',
-# 'user_title': 'string',
-# 'pin': boolean,
-# 'project': dict --> {'type': 'string', 'id': 'string', 'name': 'string', 'symbol': 'string', 'image': dict}
-# }
-
-# returns array of arrays price of asset vs currency
-def get_mk_chart(symbol, vs_currency, num_days, cgapi):
-    mk_chart = cgapi.get_coin_market_chart_by_id(id='1inch', vs_currency='usd', days=20)
-    return mk_chart["prices"]
-
-
-# api key and coin tubers' urls
-#key = ytd_api_keys['API_KEY_ID']
-# et_URL = "https://www.googleapis.com/youtube/v3/search?" \
-#          "key={}&" \
-#          "channelId=UCMtJYS0PrtiUwlk6zjGDEMA&part=snippet,id&order=date&maxResults=20".format(key)
-# mg_URL = "https://www.googleapis.com/youtube/v3/search?" \
-#          "key={}&" \
-#          "channelId=UCytNzxSmUqEBychgoKoQssw&part=snippet,id&order=date&maxResults=20".format(key)
-# it_URL = "https://www.googleapis.com/youtube/v3/search?" \
-#          "key={}&" \
-#          "channelId=UCrYmtJBtLdtm2ov84ulV-yg&part=snippet,id&order=date&maxResults=20".format(key)
-# sm_URL = "https://www.googleapis.com/youtube/v3/search?" \
-#          "key={}&" \
-#          "channelId=UCCmJln4C_CszIusbJ_MHmfQ&part=snippet,id&order=date&maxResults=20".format(key)
+# # Not sure if needed
+# # returns dfi aggregate data not really needed at the moment i don't think
+# def get_defi_data(cgapi):
+#     return cgapi.get_global_decentralized_finance_defi()
 #
-# coin_tubers = {"Elliot": et_URL, "Martini": mg_URL, "Ivan": it_URL, "Suppoman": sm_URL}
+#
+# # returns array of arrays price of asset vs currency may be useful for Walt's ML
+# def get_mk_chart(symbol, vs_currency, num_days, cgapi):
+#     mk_chart = cgapi.get_coin_market_chart_by_id(id='1inch', vs_currency='usd', days=20)
+#     return mk_chart["prices"]
 
 
-# Look at coin tuber's youtube channel and get the id of their *second* to last video
-# get video info - returns dict
-def get_vid_info(ct):
-    all_vid_info = {}
-    for tuber in ct:
-        res = requests.get(ct[tuber])
-        text_res = res.text
-        channel_vids = json.loads(text_res)
-        latest_vid = channel_vids["items"][1]  # latest video doesn't have subtitles!:/!will have to get 2nd latest([1])
-        ct_vid_info = {}
-        all_vid_info[tuber] = ct_vid_info
-        ct_vid_info["vid_name"] = latest_vid["snippet"]["title"]
-        ct_vid_info["video_id"] = latest_vid["id"]["videoId"]
-    return all_vid_info
 
-
-# Once we have the video's id, we can parse the transcript of the video
-# takes a tuber's name and a hash of all tubers video info - return value from get_vid_info()
-def create_transcrpt_arry(tuber_name, all_vids):
-    transcript_obj = YouTubeTranscriptApi.get_transcript(all_vids[tuber_name]["video_id"])
-    transcript = ""
-    for di in transcript_obj:
-        transcript += di["text"].lower()
-        transcript += " "
-    return transcript.split()
-
-
-def get_coin_list():
-    coin_list = self.cg_coin_list
-    coin_name_list = []
-    for coin in coin_list:
-        # coin_name_list.append(coin["symbol"].lower()) # maybe we do not include symbol (ticker) many common words
-        coin_name_list.append(coin["name"].lower())
-        coin_name_list.append(coin["id"].lower())
-    return coin_name_list
-
-
-# get the common words (cw) between the two lists from
-# create_transcript_arry() and get_coin_list()
-# generates a list of tupples with 2 values, common word and frequency said word appears in transcript
-def get_cw_trans_coin_lst(transcript, coin_name_list):
-    common_words = set(transcript) & set(coin_name_list)
-
-    cw_list = list(common_words)
-
-    word_freq = []
-    for wd in transcript:
-        word_freq.append(transcript.count(wd))
-    words_plus_freq = list(zip(transcript, word_freq))
-
-    tupple_list_of_freq = []
-    for common_word in cw_list:
-        index = transcript.index(common_word)
-        tupple_list_of_freq.append(words_plus_freq[index])
-    return tupple_list_of_freq
