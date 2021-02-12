@@ -10,6 +10,7 @@ import requests
 import json
 import twitter
 import time
+import urllib
 
 
 class Collect(object):
@@ -32,7 +33,6 @@ class Collect(object):
         else:
             self.cg_coin_list = []
         if tw:
-
             self.key_coin_twitter_accts = ["elliotrades",
                                            "MartiniGuyYT",
                                            "IvanOnTech",
@@ -54,7 +54,8 @@ class Collect(object):
                                      "MORE", "AND", "LIVE", "TODAY", "ONE", "JUST", "KEEP", "NOW",
                                      "WHEN", "OUR", "GOT", "NEWS", "CASH", "NARRATIVE", "JOB", "SMART", "GAS"]
 
-    # TODO fix weird bug - multiple 'UNI' keys perhaps will only use cryptocompare API though
+    # This is a dumb function that corrects multiple keys in the cg_coin_list
+    # now it's specific to 'UNI' and removes unicorn and universe token
     def delete_extra_uni(self):
         idx_to_del = []
         ct = 0
@@ -69,14 +70,39 @@ class Collect(object):
             del c_list[blah]
         return c_list
 
-    # TODO create filter by mkt cap
+
+    # using raw cg api and not python wrapper library pycoingecko
+    # thought I could add parameters per_page and get more coins, yet it only returns max 250
+    def get_all_coins_mkt_data(self):
+        res = requests.get("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
+                           "&order=market_cap_desc"
+                           "&per_page=1000"
+                           "&page=10"
+                           "&sparkline=false"
+                           "&price_change_percentage=1h%2C%2024h%2C%207d%2C%2014d%2C%2030d%2C%20200d%2C%201y")
+        return res.json()
+
+    # pulls in top 100 coins by market cap. Can filter to obtain smaller than top 100
+    # defaults to 2 trillion so brings in all 100.
+    def collect_top_100(self, value=2000000000000):
+        list = self.cg.get_coins_markets(vs_currency='usd')
+        coins_to_del = []
+        for coin in list:
+            if coin['market_cap'] > value:
+                coins_to_del.append(coin)
+        if len(coins_to_del) > 0:
+            for coin in coins_to_del:
+                list.remove(coin)
+        return list
+
 
     # will return a json object, now returning python dict for testing
     # would like to add detail keys, but pushes api rate limits:
     #       "cg_detail": self.cg.get_coin_by_id(coin['id']),
     def collect_all(self, tweet_count):
-        cg_master_list = self.delete_extra_uni()
+        cg_master_list = self.delete_extra_uni()  # should just be self.cg_coin_list
         cc_master_list = self.filter_cc_hash()
+
         tc = self.get_coins_in_recent_tweets(tweet_count)  # tweeted coins
         for coin in cg_master_list:  # adding tweeted boolean key (if recently tweeted by self.key_coin_twitter_accts)
             if coin['symbol'].upper() in cc_master_list:
@@ -94,6 +120,10 @@ class Collect(object):
             print("tickers with status dict: {}".format(item))
             if item.upper() in cc_master_list:
                 cc_master_list[item.upper()]['status_dict'] = status_dict[item]
+        # TO SAVE API CALLS DURING TESTING I WROTE TO JSON TO A FILE CALLED master_list.json
+        # un-comment this code to write to file
+        # with open('master_list.json', 'w') as outfile:
+        #     json.dump(cc_master_list, outfile)
         return cc_master_list
 
     # note category has 'general', 'software release' and 'partnership'

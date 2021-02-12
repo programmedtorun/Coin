@@ -15,9 +15,13 @@ results.
 hour? Or will that just result in a gloppy, grey mess of different
 events each cancelling each other out with not enough detail to be
 actionable?
+  - If we can get a critical mass of which way the market will move on a few key coins I think this may be a better route, the more I think about it. Like lets PURPOSLY give the model 100 or 500 coins that we think would be good to track pumps. We can then get specific information on these coins easier from the APIs instead of grabbing all coins and trying to listen to see if ANY are out there... I'm just brainstorming here. But the thing is, it is difficult to get all coins or a large amount of coins in 1 API call, unless we subscribe to a service, though you might have a better way of getting responses with more coins with more info using 1 or so requests. 
+  
 
 2. Do we have to narrow the predictions for just certain
 events?
+- We should track the sentiment meter for coins (can get from coin gecko coin id) how do ppl feel about a coin is the sentiment meter. As for events I'm not sure exactly what you mean. There are news articles we can pull and parse through. I have a coin gecko feed that pulls in 'status updates' into the maser config, a partnerships announcement or software update i am considering positive status updates
+
 
 3. "certain" events like "a coin spiking" will always occur
 so we have to narrow it down even more.
@@ -31,6 +35,7 @@ coins influence a coin. For example, if Bitcoin drops it heavily
 influences all coins to the downside. So we can't always look at each
 coin in an isolated fashion. It also seems that when Bitcoin pumps,
 people sell their alt coins to get back into Bitcoin.
+- like mentioned I think maybe we have a list of 100 - 500 coins that we focus on. the "pumps" rotate!! remember like your old coins that you have held for a year are pumping those are shit coins you said, but you get the example. I think if we have a subset of positive sentiment coins (coins/projects that people like) then we put them in rotation and have our model listen for spikes in interest and when it picks it up we buy. or we look at market cap and a few other metrics... then buy
 
 6. I suspect each coin will need its own predicter model but should
 include relative price moves of the majors like Bitcoin, Ethereum and
