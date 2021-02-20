@@ -22,9 +22,7 @@ coin_list = [
     "RUNE"
 ]
 coin_list_two = [
-    "UNI",
     "DODO",
-    "1INCH",
     "ZIL",
     "HOT",
     "ORN",
@@ -34,5 +32,6 @@ coin_list_two = [
 
 
 anal = Analysis(coin_list_two)
-id_hash = anal.get_id_list()
-print(id_hash)
+list = anal.get_coin_id_list()
+list_with_social = anal.get_social(list)
+print(list_with_social)

@@ -26,7 +26,7 @@ class Analysis(object):
             cc_api_keys = json.loads(f.read())
         return cc_api_keys['CC_API_KEY']
 
-    # creates a .json file locally of cc_full_hash, use periodically
+    # creates a .json file locally of cc_full_hash. use only periodically
     def create_hash_file(self):
         file = open("cc_master_list.json", "r+")
         file.truncate(0)
@@ -42,7 +42,7 @@ class Analysis(object):
         return data
 
     # returns a list of dicts key = symbol, value = cc id
-    def get_id_list(self):
+    def get_coin_id_list(self):
         hash = self.load_hash()
         id_list = []
         for coin in self.coin_list:
@@ -64,12 +64,16 @@ class Analysis(object):
             del hash[key]
         return hash
 
-    def get_social(self, coin_id):
-        key = cc_api()
-        res = requests.get("https://min-api.cryptocompare.com/data/social/coin/latest?api_key={}&coinId={}".format(key, coin_id))
-        text_res = res.text
-        j_res = json.loads(text_res)
-        return j_res
+    # returns a list of dicts, {symbol: cc_id, "social": {social data dict}}
+    def get_social(self, coin_id_list):
+        api_key = self.cc_api_key()
+        for coin in coin_id_list:
+            for symbol in coin:
+                res = requests.get("https://min-api.cryptocompare.com/data/social/coin/latest?api_key={}&coinId={}".format(api_key, coin[symbol]))
+                text_res = res.text
+                j_res = json.loads(text_res)
+            coin["social_data"] = j_res
+        return coin_id_list
 
     # would like to get alt rank of luna
     # def luna(self):
