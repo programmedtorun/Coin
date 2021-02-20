@@ -37,8 +37,17 @@ class Analysis(object):
 
     # loads coin has from file to in mem python dict
     def load_hash(self):
-        with open('cc_master_list.json') as json_file:
-            return json.load(json_file)
+        with open('cc_master_list.json', 'r') as json_file:
+            data = json.load(json_file)
+        return data
+
+    # returns a list of dicts key = symbol, value = cc id
+    def get_id_list(self):
+        hash = self.load_hash()
+        id_list = []
+        for coin in self.coin_list:
+            id_list.append({coin: hash[coin]['Id']})
+        return id_list
 
     # ret hash of all coins on cc marked 'trading.' keys are coin tickers
     def cc_full_hash(self):
@@ -60,7 +69,7 @@ class Analysis(object):
         res = requests.get("https://min-api.cryptocompare.com/data/social/coin/latest?api_key={}&coinId={}".format(key, coin_id))
         text_res = res.text
         j_res = json.loads(text_res)
-        print(j_res)
+        return j_res
 
     # would like to get alt rank of luna
     # def luna(self):

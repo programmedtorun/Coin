@@ -34,6 +34,5 @@ coin_list_two = [
 
 
 anal = Analysis(coin_list_two)
-
-anal.create_hash_file()
-
+id_hash = anal.get_id_list()
+print(id_hash)
