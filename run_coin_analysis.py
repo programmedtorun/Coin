@@ -7,6 +7,7 @@ import csv
 import json
 import time
 
+# example manual lists
 coin_list = [
     "INJ",
     "FTM",
@@ -32,24 +33,30 @@ coin_list_two = [
     "ORN",
     "GRT"
 ]
+
+# running program output
 print("Collecting hot coins to analyze...")
 time.sleep(2)
 print("...........")
-time.sleep(2)
 col = Collect(True, True, True, True)
 top_seven_list = []
 for coin in col.get_top_seven_symbol():
     top_seven_list.append(coin['symbol'])
+print("TOP 7: {}".format(top_seven_list))
+
 collect_statuses = col.get_status_updates()
 recent_status_list = list(collect_statuses.keys())
-coins_to_analyze = list(set(top_seven_list) & set(recent_status_list)) + list(set(top_seven_list) - set(recent_status_list))
-print("analyzing {} coins..".format(len(coins_to_analyze)))
+print("RECENT STATUS LIST: {}".format(recent_status_list))
+
+coins_to_analyze = recent_status_list + top_seven_list
+coins_to_analyze_set = set(coins_to_analyze)
+coins_to_analyze_list = list(coins_to_analyze_set)
+print("analyzing {} coins..".format(len(coins_to_analyze_list)))
+print("COINS TO ANALYZE: {}".format(coins_to_analyze_list))
+
 time.sleep(2)
-print("...........")
-print("coins to analyze are: {}".format(coins_to_analyze))
-time.sleep(1.5)
 print("************************************************************************************")
-anal = Analysis(coins_to_analyze)
+anal = Analysis(coins_to_analyze_list)
 print("pulling in data...")
 time.sleep(1.5)
 print("writing files...")
@@ -73,19 +80,3 @@ for coin in final_list_rank:
     print("Coin #{}, symbol: {}, buy score: {}, market_cap: {}".format(number, coin['cc_symbol'], coin['buy_level'], coin['market_cap']))
     number -= 1
     print("###########################")
-# fin_info = anal.load_cmc_hash()['data']
-# for coin in fin_info:
-#     if coin['symbol'] == 'GRT':
-#         print(coin)
-
-
-
-
-
-
-# master_hash = anal.load_hash()
-#
-# print(master_hash["BNB"])
-# # list = anal.get_coin_id_list()
-# # list_with_social = anal.get_social(list)
-# # print(list_with_social)
