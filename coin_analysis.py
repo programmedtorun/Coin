@@ -128,7 +128,7 @@ class Analysis(object):
                                        })
         return final_data
 
-    # Gives buy recommendation, ranking last coin = best buy, 1st coin = worst buy
+    # Gives buy recommendation, ranking first coin = best buy, last coin = worst buy
     def process_vectors(self, ndx_list):
         for coin in ndx_list:
             social_normalizer = (coin["social_points"] * coin["volume_24h"]) / coin["market_cap"]
