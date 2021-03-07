@@ -2,6 +2,9 @@ import etherscan
 import json
 import requests
 
+# experimentation file for etherscan api
+# needs https://pypi.org/project/etherscan/
+
 # Get API Key
 with open('ES_API_KEY_FILE.json', 'r') as f:
     es_key = json.loads(f.read())
@@ -15,8 +18,9 @@ es = etherscan.Client(
 
 eth_price = es.get_eth_price()
 
-# print(eth_price)
+print(eth_price)
 
+# get someone's eth balance
 eth_balance = es.get_eth_balance('0x9c7f37a2e0496236374085b9d7aec2c0206b5500')
 
 
