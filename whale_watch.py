@@ -35,18 +35,14 @@ api = "ACCbkmobSFuMs"
 # bloxy_api is the api key
 # in the future we can use this function to
 # build a list of 500+ contract urls
-# NOTE encoding for url UTC parameters is not working
 def build_url(time_interval, ctr_hash, bloxy_api):
-    now_utc = datetime.utcnow()
-    string_utc_time = now_utc.strftime('%Y-%m-%dT%H:%M:%S.000Z')
-    url_en_utc_time = re.sub(":", "%3A", string_utc_time)
-    xmg = now_utc - timedelta(minutes=time_interval)  # x minutes ago = xmg
+    xmg = datetime.utcnow() - timedelta(minutes=time_interval)  # x minutes ago = xmg
     string_xmg = xmg.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     url_en_xmg_utc_time = re.sub(":", "%3A", string_xmg)
     return "https://api.bloxy.info/dex/trades?protocol=Uniswap+v2&" \
-          "token={}&from_date={}&till_date={}&" \
-          "key={}&format=structure".\
-          format(ctr_hash, url_en_utc_time, url_en_xmg_utc_time, bloxy_api)
+           "token={}&from_date={}&" \
+           "key={}&format=structure".\
+           format(ctr_hash, url_en_xmg_utc_time, bloxy_api)
 
 
 # takes a utc transaction time and converts to nyc time
@@ -94,7 +90,7 @@ def process_token_addy(url):
 
 
 # note: in the request we will have to figure out the intervals to segment,
-# here I'm segmenting every 10 min in the future we will call build_url
+# here I'm segmenting every 60 min in the future we will call build_url
 # in a loop and create a list of low caps to poll
 str_url = build_url(60, c_hash, api)
 process_token_addy(str_url)
