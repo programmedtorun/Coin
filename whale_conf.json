@@ -1,0 +1,26 @@
+{
+  "token_list": [
+    {
+      "symbol": "CX",
+      "wh_buys_20m": [
+        {
+          "date": "2021-03-07 05:46:42-05:00",
+          "ETH_amt": "15.0",
+          "tx_hash": "0x5a45c96eea62f71bd6729d4d75618c177993844c5daffa221aa389895110093f",
+          "tx_sender": "0x0662361512bf69d5d2ce878d8cafac1863f05b75",
+          "wallet_ETH_bal": "0.477412182885080323"
+        }
+      ],
+      "all_wh_buys": [
+        {
+          "date": "2021-03-07 05:46:42-05:00",
+          "ETH_amt": "15.0",
+          "tx_hash": "0x5a45c96eea62f71bd6729d4d75618c177993844c5daffa221aa389895110093f",
+          "tx_sender": "0x0662361512bf69d5d2ce878d8cafac1863f05b75",
+          "wallet_ETH_bal": "0.477412182885080323"
+        }
+      ]
+    },
+    {}
+  ]
+}
