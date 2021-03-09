@@ -32,8 +32,10 @@ api = "ACCbkmobSFuMs"
 # note: in the request we will have to figure out the intervals to segment,
 # here I'm segmenting every 60 min in the future we will call build_url
 # in a loop and create a list of low caps to poll
-print('hello')
-str_url = whale_watch.build_url(60, c_hash, api)
+str_url = whale_watch.build_url(1400, c_hash, api)
 
 # uncomment to run (OPEN CONF FILE ITERATE THROUGH TOKENS AND PROCESS THEIR ADDYS)
-# process_token_addy(str_url, 'whale_conf.json')
+new_whale_data = whale_watch.process_token_addy(str_url, 'whale_conf.json')
+print("\n\nnew whale data is")
+print(new_whale_data)
+whale_watch.close_conf('whale_conf.json', new_whale_data)

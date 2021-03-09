@@ -51,9 +51,10 @@ def utc_xfr(tx_time):
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
     time = tx_time[:19]  # transaction time
+    print("time is: {}".format(time))
     utc = datetime.strptime(time, '%Y-%m-%dT%H:%M:%S')
     utc = utc.replace(tzinfo=from_zone)
-    return utc.astimezone(to_zone)
+    return str(utc.astimezone(to_zone))
 
 
 # takes an individual's eth address and contract decimal precision
@@ -81,38 +82,51 @@ def close_conf(file_name, data_update):
     file.truncate(0)
     file.close()
     with open(file_name, 'w') as outfile:
-        json.dump(data_update, outfile)
+        json.dump(data_update, outfile, default=str)
 
+# TODO write function that when called, sends an SMS
+def send_sms_alert():
+    print("THIS IS A TEXT ALERT")
+
+# Takes url and config file
+# returns a processed config file (python dict)
+# return value should be arg to close_conf() to write data
 def process_token_addy(url, conf_file):
     r = requests.get(url)
     tx_json_data = json.loads(r.text)
     tx_ct = len(tx_json_data)
     print("\ncount of transcations: {}\n".format(tx_ct))
-    data = open_conf(conf_file)
+    tokens = open_conf(conf_file)
     if tx_ct == 0:
         print("no whale buys in last 20 minutes")
-        token_list = data["token_list"]
-        for token in token_list:
-            token["wh_buys_20m"].clear()
-        print("closing configuration file")
-        close_conf(conf_file, data)
-        return data
+        for token in tokens:
+            tokens[token]["wh_buys_20m"].clear() # clearing all from recent buys list
+        return tokens
     else:
-        # TODO process whales into whale_conf.json...
-        #  what is considered a whale buy?! thinking greater than 15 ETH...
         for dex_tx in tx_json_data:
-            if dex_tx["buySymbol"] == "WETH" and dex_tx["amountBuy"] >= 15:
+            if dex_tx["buySymbol"] == "WETH" and dex_tx["amountBuy"] >= tokens[dex_tx["sellSymbol"]]["eth_whale_thresh"]:
+                # TODO alert! send SMS
+
                 nyc_time = utc_xfr(dex_tx["tx_time"])
                 whale_eth_bal = get_whale_eth_bal(dex_tx["tx_sender"], 18)
-                print("{} ETH buy \non {} \nfor ticker {}\n"
+
+                tx_dict = {"symbol": dex_tx["sellSymbol"]}
+                keys = {"tx_time" : nyc_time, "amount_buy" : dex_tx["amountBuy"],
+                        "tx_hash" : dex_tx["tx_hash"], "wh_wallet_bal" :  whale_eth_bal,
+                        "tx_sender" : dex_tx["tx_sender"]}
+
+                # adding whale data to config
+                tx_dict.update(keys)
+                tokens[dex_tx["sellSymbol"]]["wh_buys_20m"].append(tx_dict)
+                tokens[dex_tx["sellSymbol"]]["all_wh_buys"].append(tx_dict)
+
+                # print info whale to console TODO add logging
+                print("Adding whale buy to conf! {} ETH buy \non {} \nfor ticker {}\n"
                       "whale wallet balance:  {} ETH\nTX HASH: {}\nTX sender: {}".
-                      format(dex_tx["amountBuy"],
-                             nyc_time,
-                             dex_tx["sellSymbol"],
-                             whale_eth_bal,
-                             dex_tx["tx_hash"],
-                             dex_tx["tx_sender"]))
+                      format(dex_tx["amountBuy"],nyc_time,dex_tx["sellSymbol"],
+                             whale_eth_bal,dex_tx["tx_hash"],dex_tx["tx_sender"]))
                 print("\n************************************************\n")
+        return tokens
 
 
 if __name__ == "__main__":
