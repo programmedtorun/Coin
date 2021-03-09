@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from dateutil import tz
 import re
 
+
 # Get API Key for etherscan (needed to get whale's ETH bal)
 with open('ES_API_KEY_FILE.json', 'r') as f:
     es_key = json.loads(f.read())
@@ -67,30 +68,52 @@ def get_whale_eth_bal(tx, dec_prec):
         whale_eth_bal = whale_eth_bal[0:len(whale_eth_bal) - dec_prec] + '.' + whale_eth_bal[-dec_prec:]
     return whale_eth_bal
 
+# opens whale_conf.json and returns as python dict
+def open_conf(file):
+    with open(file, 'r') as json_file:
+        data = json.load(json_file)
+    return data
 
-def process_token_addy(url):
+# turns python dict into json and writes new file
+# should be example of writing over whole file
+def close_conf(file_name, data_update):
+    file = open(file_name, 'r+')
+    file.truncate(0)
+    file.close()
+    with open(file_name, 'w') as outfile:
+        json.dump(data_update, outfile)
+
+def process_token_addy(url, conf_file):
     r = requests.get(url)
     tx_json_data = json.loads(r.text)
-    print("\ncount of transcations: {}\n".format(len(tx_json_data)))
+    tx_ct = len(tx_json_data)
+    print("\ncount of transcations: {}\n".format(tx_ct))
+    data = open_conf(conf_file)
+    if tx_ct == 0:
+        print("no whale buys in last 20 minutes")
+        token_list = data["token_list"]
+        for token in token_list:
+            token["wh_buys_20m"].clear()
+        print("closing configuration file")
+        close_conf(conf_file, data)
+        return data
+    else:
+        # TODO process whales into whale_conf.json...
+        #  what is considered a whale buy?! thinking greater than 15 ETH...
+        for dex_tx in tx_json_data:
+            if dex_tx["buySymbol"] == "WETH" and dex_tx["amountBuy"] >= 15:
+                nyc_time = utc_xfr(dex_tx["tx_time"])
+                whale_eth_bal = get_whale_eth_bal(dex_tx["tx_sender"], 18)
+                print("{} ETH buy \non {} \nfor ticker {}\n"
+                      "whale wallet balance:  {} ETH\nTX HASH: {}\nTX sender: {}".
+                      format(dex_tx["amountBuy"],
+                             nyc_time,
+                             dex_tx["sellSymbol"],
+                             whale_eth_bal,
+                             dex_tx["tx_hash"],
+                             dex_tx["tx_sender"]))
+                print("\n************************************************\n")
 
-    #  what is considered a whale buy?! thinking greater than 15 ETH...
-    for dex_tx in tx_json_data:
-        if dex_tx["buySymbol"] == "WETH" and dex_tx["amountBuy"] >= 15:
-            nyc_time = utc_xfr(dex_tx["tx_time"])
-            whale_eth_bal = get_whale_eth_bal(dex_tx["tx_sender"], 18)
-            print("{} ETH buy \non {} \nfor ticker {}\n"
-                  "whale wallet balance:  {} ETH\nTX HASH: {}\nTX sender: {}".
-                  format(dex_tx["amountBuy"],
-                         nyc_time,
-                         dex_tx["sellSymbol"],
-                         whale_eth_bal,
-                         dex_tx["tx_hash"],
-                         dex_tx["tx_sender"]))
-            print("\n************************************************\n")
 
-
-# note: in the request we will have to figure out the intervals to segment,
-# here I'm segmenting every 60 min in the future we will call build_url
-# in a loop and create a list of low caps to poll
-str_url = build_url(60, c_hash, api)
-process_token_addy(str_url)
+if __name__ == "__main__":
+    print("hello")

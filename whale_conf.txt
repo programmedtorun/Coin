@@ -1,8 +1,8 @@
 This file explains the format of the whale_conf.json file and gives an example.
 
-the whale_conf.json file will be a hash with key token_list. it will be a list of hashes,
-each hash will have keys "symbol" (token ticker), "wh_buys_20m" (list of hashes with buy info
-from only the last 20 min) - the app will sense if there is something in this list, if there
+the whale_conf.json file will be a hash of hashes, the keys of the hashes are coin ticker
+symbol. each hash will have keys "symbol" (token ticker), "wh_buys_20m" (list of hashes with
+buy info from only the last 20 min)-the app will sense if there is something in this list, if there
 is a buy then trigger an alarm, the alarm will send a text and email with the recent buy amount
 and also all big buy history (can also eventually pull in tokenomics API data from CMC as brief
 summary, this will be a bit later)
@@ -12,31 +12,23 @@ are remaining big buys from a token in the wh_buys_20m list from the previous 20
 the app will delete these (and write new ones if there are any, or it will be left blank if not).
 any big buy will be permenantly written to "all_wh_buys" list
 
-
-
 {
-  "token_list": [
-    {
-      "symbol": "CX",
-      "wh_buys_20m": [
-        {
-          "date": "2021-03-07 05:46:42-05:00",
-          "ETH_amt": "15.0",
-          "tx_hash": "0x5a45c96eea62f71bd6729d4d75618c177993844c5daffa221aa389895110093f",
-          "tx_sender": "0x0662361512bf69d5d2ce878d8cafac1863f05b75",
-          "wallet_ETH_bal": "0.477412182885080323"
-        }
-      ],
-      "all_wh_buys": [
-        {
-          "date": "2021-03-07 05:46:42-05:00",
-          "ETH_amt": "15.0",
-          "tx_hash": "0x5a45c96eea62f71bd6729d4d75618c177993844c5daffa221aa389895110093f",
-          "tx_sender": "0x0662361512bf69d5d2ce878d8cafac1863f05b75",
-          "wallet_ETH_bal": "0.477412182885080323"
-        }
-      ]
-    },
-    {}
-  ]
+  "NFY": {
+    "symbol": "NFY",
+    "contract_hash": "0x1cbb83ebcd552d5ebf8131ef8c9cd9d9bab342bc",
+    "wh_buys_20m": [],
+    "all_wh_buys": []
+  },
+  "SYNC" : {
+    "symbol": "SYNC",
+    "contract_hash": "0xb6ff96b8a8d214544ca0dbc9b33f7ad6503efd32",
+    "wh_buys_20m": [],
+    "all_wh_buys": []
+  },
+  "WCK" : {
+    "symbol": "WCK",
+    "contract_hash": "0x09fe5f0236f0ea5d930197dce254d77b04128075",
+    "wh_buys_20m": [],
+    "all_wh_buys": []
+  }
 }
