@@ -32,10 +32,23 @@ api = "ACCbkmobSFuMs"
 # note: in the request we will have to figure out the intervals to segment,
 # here I'm segmenting every 60 min in the future we will call build_url
 # in a loop and create a list of low caps to poll
-str_url = whale_watch.build_url(1400, c_hash, api)
+str_url = whale_watch.build_url(60, c_hash, api)
 
-# uncomment to run (OPEN CONF FILE ITERATE THROUGH TOKENS AND PROCESS THEIR ADDYS)
-new_whale_data = whale_watch.process_token_addy(str_url, 'whale_conf.json')
-print("\n\nnew whale data is")
-print(new_whale_data)
-whale_watch.close_conf('whale_conf.json', new_whale_data)
+
+# TODO:
+# TODO: add text alerting
+# TODO: format buy info for message
+# TODO: add logging
+# TODO: add all coins we want whale watch to monitor (include ETH whale buy thresholds)
+# TODO: add looping mechanism for processing all requests(each request is to a different contract address)
+# TODO: add job scheduling
+# TODO: buy bloxy api for 1 month to test
+
+
+# (OPEN CONF FILE ITERATE THROUGH TOKENS AND PROCESS THEIR ADDYS: via building list of ctr hashes
+# then iterate through the list to build each url and have a list of urls, then iterate thr urls and process token adds)
+# uncomment to run
+# new_whale_data = whale_watch.process_token_addy(str_url, 'whale_conf.json')
+# print("\n\nnew whale data is")
+# print(new_whale_data)
+# whale_watch.close_conf('whale_conf.json', new_whale_data)

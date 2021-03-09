@@ -121,7 +121,7 @@ def process_token_addy(url, conf_file):
                 tokens[dex_tx["sellSymbol"]]["all_wh_buys"].append(tx_dict)
 
                 # print info whale to console TODO add logging
-                print("Adding whale buy to conf! {} ETH buy \non {} \nfor ticker {}\n"
+                print("Adding whale buy to conf! \n{} ETH buy \non {} \nfor ticker {}\n"
                       "whale wallet balance:  {} ETH\nTX HASH: {}\nTX sender: {}".
                       format(dex_tx["amountBuy"],nyc_time,dex_tx["sellSymbol"],
                              whale_eth_bal,dex_tx["tx_hash"],dex_tx["tx_sender"]))
