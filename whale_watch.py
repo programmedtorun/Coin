@@ -6,15 +6,17 @@ from dateutil import tz
 import re
 from twilio.rest import Client
 import os
+import time
 
 
 # returns twilio client
 def get_twilio(file):
     with open(file, 'r') as f:
         tw_keys = json.loads(f.read())
-    os.environ['TW_SID'] = tw_keys["SID"]
-    os.environ['TW_AUTH_TOKEN'] = tw_keys["AUTH_TOKEN"]
-    tw = Client(tw_keys["SID"], tw_keys["AUTH_TOKEN"])
+    os.environ['TW_SID'] = tw_keys['SID']
+    os.environ['TW_AUTH_TOKEN'] = tw_keys['AUTH_TOKEN']
+    os.environ['MSG_SVC_SID'] = tw_keys['MSG_SVC_SID']
+    tw = Client(tw_keys['SID'], tw_keys['AUTH_TOKEN'])
     return tw
 
 # bloxy api - ** CAUTION VERY FEW CALLS IN TRIAL (less than 50)**
@@ -35,9 +37,9 @@ def get_ether_api(file):
     return es
 
 def send_sms(tw_client, msg, number):
-    sid = os.environ.get('TW_SID')
+    ms_sid = os.environ['MSG_SVC_SID']
     tw_client.messages.create(
-        messaging_service_sid=sid,
+        messaging_service_sid=ms_sid,
         body=msg,
         to=number
     )
@@ -105,14 +107,17 @@ def close_conf(file_name, data_update):
 # Takes url and config file
 # returns a processed config file (python dict)
 # return value should be arg to close_conf() to write data
-def process_token_addy(url, conf_file, es, tw, numbers):
+def process_token_addy(url, conf_file, es, tw, numbers, time_interval):
     r = requests.get(url)
     tx_json_data = json.loads(r.text)
     tx_ct = len(tx_json_data)
-    print("\ncount of transcations: {}\n".format(tx_ct))
+    print("\nTotal count of transcations: {}\n".format(tx_ct))
     tokens = open_conf(conf_file)
+    symbol = tx_json_data[0]["sellSymbol"]
+    if symbol == "WETH": # first record could be buy or sell, so forcing it to be the alt-coin and NOT "WETH"
+        symbol = tx_json_data[0]["buySymbol"]
     for token in tokens:
-        tokens[token]["wh_buys_20m"].clear() # always clear out latest tokens list
+        tokens[token]["recent_wh_buys"].clear() # always clear out latest tokens list
     if tx_ct == 0:
         print("no whale buys in last 20 minutes")
         return tokens
@@ -122,28 +127,43 @@ def process_token_addy(url, conf_file, es, tw, numbers):
 
                 nyc_time = utc_xfr(dex_tx["tx_time"])
                 whale_eth_bal = get_whale_eth_bal(dex_tx["tx_sender"], 18, es)
+                time.sleep(0.5)
 
-                tx_dict = {"symbol": dex_tx["sellSymbol"]}
-                keys = {"tx_time" : nyc_time, "amount_buy" : dex_tx["amountBuy"],
-                        "tx_hash" : dex_tx["tx_hash"], "wh_wallet_bal" :  whale_eth_bal,
-                        "tx_sender" : dex_tx["tx_sender"]}
+                tx_dict = {"symbol": dex_tx["sellSymbol"], "tx_time" : nyc_time,
+                           "amount_buy" : dex_tx["amountBuy"], "tx_hash" : dex_tx["tx_hash"],
+                           "wh_wallet_bal" :  whale_eth_bal, "tx_sender" : dex_tx["tx_sender"]}
 
                 # adding whale data to config
-                tx_dict.update(keys)
-                tokens[dex_tx["sellSymbol"]]["wh_buys_20m"].append(tx_dict)
+                tokens[dex_tx["sellSymbol"]]["recent_wh_buys"].append(tx_dict)
                 tokens[dex_tx["sellSymbol"]]["all_wh_buys"].append(tx_dict)
 
-                # print info whale to console TODO add logging
-                message = "A whale sighting!!! \n{} ETH buy \non {} \nfor ticker {}\nwhale wallet balance:  " \
-                          "{} ETH\nTX HASH: {}\nTX sender: {}\n".format(dex_tx["amountBuy"],nyc_time,dex_tx["sellSymbol"],
-                                                                      whale_eth_bal,dex_tx["tx_hash"],dex_tx["tx_sender"])
-
-                # send sms to Walt and Patrick
-                for num in numbers:
-                    send_sms(tw, message, num)
+                # print info whale to console TODO: add logging
+                message = "A whale sighting!!! \n{} ETH buy \non {} \nfor ticker {}\nwwb: " \
+                          "{} ETH\n".format(dex_tx["amountBuy"], nyc_time, dex_tx["sellSymbol"], whale_eth_bal)
 
                 # print whale to console
                 print(message + "\n*********************\n")
+        buys = tokens[symbol]["recent_wh_buys"]
+        # all_buys = tokens[symbol]["all_wh_buys"]
+        buys_info = ""
+        b_ct = 1
+        for buy in buys:
+            tx_tm = str(buy["tx_time"])[:19]
+            amt = str(buy["amount_buy"])[:6]
+            wwb = str(buy["wh_wallet_bal"])[:7]
+            addition = "\nBUY {} -> time: {}\namt: {}\nwwb: {}\n".format(b_ct, tx_tm, amt, wwb)
+            buys_info += addition
+            b_ct += 1
+        # for buy in all_buys:
+        #     addition = " |tx_time: {}\namt: {}\nwwb: {}| "\
+        #                .format(buy["tx_time"], buy["amount_buy"],buy["wh_wallet_bal"])
+        #     all_buys_info += addition
+        message = "Whale sighting!! sm: {}, {} buys in {}min!\n" \
+                  "buys info: \n{}\n"\
+                  .format(symbol, len(buys), time_interval, buys_info)
+        # send sms to Walt and Patrick
+        for num in numbers:
+            send_sms(tw, message, num)
         return tokens
 
 
