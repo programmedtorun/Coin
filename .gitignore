@@ -1,6 +1,8 @@
 .DS_Store
 YTD_API.json
 CC_API_KEY_FILE.json
+BLOXY_API.json
+TWILIO_STUFF.json
 ES_API_KEY_FILE.json
 CMC_API_KEY_FILE.json
 TW_KEY_FILE.json
