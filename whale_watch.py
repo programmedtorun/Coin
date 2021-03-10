@@ -154,7 +154,7 @@ def process_token_addy(url, conf_file, es, tw, numbers, time_interval):
             addition = "\nBUY {} ->\ntime: {}\namt: {}\nwwb: {}\n".format(b_ct, tx_tm, amt, wwb)
             buys_info += addition
             b_ct += 1
-        # commented out code for sending all buys because it will make the text too long. 
+        # commented out code for sending all buys because it will make the text too long.
         # for buy in all_buys:
         #     addition = " |tx_time: {}\namt: {}\nwwb: {}| "\
         #                .format(buy["tx_time"], buy["amount_buy"],buy["wh_wallet_bal"])

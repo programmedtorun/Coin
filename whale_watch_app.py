@@ -15,13 +15,11 @@ bx = whale_watch.get_bloxy_api('BLOXY_API.json')
 tw = whale_watch.get_twilio('TWILIO_STUFF.json')
 str_url = whale_watch.build_url(time_interval, c_hash, bx)
 
-# TODO: add text alerting
-# TODO: format buy info for message
-# TODO: add logging
 # TODO: add all coins we want whale watch to monitor (include ETH whale buy thresholds)
 # TODO: add looping mechanism for processing all requests(each request is to a different contract address)
 # TODO: add job scheduling
 # TODO: buy bloxy api for 1 month to test
+# TODO: add logging
 
 
 # (OPEN CONF FILE ITERATE THROUGH TOKENS AND PROCESS THEIR ADDYS: via building list of ctr hashes
