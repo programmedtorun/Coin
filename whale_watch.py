@@ -148,19 +148,20 @@ def process_token_addy(url, conf_file, es, tw, numbers, time_interval):
         buys_info = ""
         b_ct = 1
         for buy in buys:
-            tx_tm = str(buy["tx_time"])[:19]
+            tx_tm = str(buy["tx_time"])[:19][5:]
             amt = str(buy["amount_buy"])[:6]
             wwb = str(buy["wh_wallet_bal"])[:7]
-            addition = "\nBUY {} -> time: {}\namt: {}\nwwb: {}\n".format(b_ct, tx_tm, amt, wwb)
+            addition = "\nBUY {} ->\ntime: {}\namt: {}\nwwb: {}\n".format(b_ct, tx_tm, amt, wwb)
             buys_info += addition
             b_ct += 1
+        # commented out code for sending all buys because it will make the text too long. 
         # for buy in all_buys:
         #     addition = " |tx_time: {}\namt: {}\nwwb: {}| "\
         #                .format(buy["tx_time"], buy["amount_buy"],buy["wh_wallet_bal"])
         #     all_buys_info += addition
-        message = "Whale sighting!! sm: {}, {} buys in {}min!\n" \
-                  "buys info: \n{}\n"\
-                  .format(symbol, len(buys), time_interval, buys_info)
+        message = "Whale sighting!! sm: {}, {} buys in {}min!\nETH Thresh: {}\n" \
+                  "Buys info: \n{}\n"\
+                  .format(symbol, len(buys), time_interval, tokens[symbol]["eth_whale_thresh"], buys_info)
         # send sms to Walt and Patrick
         for num in numbers:
             send_sms(tw, message, num)
