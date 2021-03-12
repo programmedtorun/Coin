@@ -113,10 +113,8 @@ def close_conf(file_name, data_update):
         json.dump(data_update, outfile, default=str)
 
 # creates/makes the bitquery request to get DEX trades
-# time_interval in minutes
-# limit is a number that limits the query response
-# writes to a filename (for now, will be done in memory in the future)
-def get_bitquery_data(time_interval, limit): # , filename
+# time_interval in minutes. limit is a number that limits resp count
+def get_bitquery_data(time_interval, limit):
     pre = datetime.utcnow() - timedelta(minutes=time_interval)
     from_time = pre.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     variables = "{\"limit\":" + str(
@@ -124,9 +122,7 @@ def get_bitquery_data(time_interval, limit): # , filename
     payload = {
         "query": 'query ($network: EthereumNetwork!,$limit: Int!,$offset: Int!$from: ISO8601DateTime,$till: ISO8601DateTime){ethereum(network: $network){dexTrades(options:{desc: ["block.height","tradeIndex"], limit: $limit, offset: $offset},date: {since: $from till: $till }) {block {timestamp {time (format: "%Y-%m-%d %H:%M:%S")}height}                          tradeIndex                          protocol                          exchange {                            fullName                          }                          smartContract {                            address {                              address                              annotation                            }                          }                          buyAmount                          buyCurrency {                            address                            symbol                          }                          sellAmount                          sellCurrency {                            address                            symbol                          }                          transaction {                            hash                          }                      }                    }                  }',
         "variables": variables}
-
     resp = requests.post("https://graphql.bitquery.io/", data=payload)
-
     return resp
 
 # token_conf = json file that has all tokens we care about
@@ -160,12 +156,10 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
                 # adding whale data to config
                 tokens[alt_symbol]["recent_wh_buys"].append(tx_dict)
                 tokens[alt_symbol]["all_wh_buys"].append(tx_dict)
-                #
-                # # print info whale to console TODO: add logging
-                message = "A whale sighting!!! \n{} ETH buy \non {} \nfor ticker {}".format(trade["buyAmount"], nyc_time, alt_symbol)
-                # print whale to console
-                print(message + "\n*********************\n")
-                process_sms(tokens[alt_symbol]["recent_wh_buys"], alt_symbol, time_interval, tokens[alt_symbol]["eth_whale_thresh"], recv_nums, tw)
+
+                message = process_sms(tokens[alt_symbol]["recent_wh_buys"], alt_symbol, time_interval, tokens[alt_symbol]["eth_whale_thresh"], recv_nums, tw)
+                print(message)
+                return tokens
 
 def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):
     buys_info = ""
@@ -183,7 +177,7 @@ def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):
     for num in recv_nums:
         send_sms(tw, message, num)
     return message
-    # print(json.dumps(json.loads(resp.text), indent=4))
+
 # Takes url and config file
 # returns a processed config file (python dict)
 # return value should be arg to close_conf() to write data
