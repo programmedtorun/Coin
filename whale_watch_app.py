@@ -14,7 +14,7 @@ ether_api = whale_watch.get_ether_api('ES_API_KEY_FILE.json')
 bx = whale_watch.get_bloxy_api('BLOXY_API.json')
 tw = whale_watch.get_twilio('TWILIO_STUFF.json')
 str_url = whale_watch.build_url(time_interval, c_hash, bx)
-
+print(str_url)
 # TODO: add all coins we want whale watch to monitor (include ETH whale buy thresholds)
 # TODO: add looping mechanism for processing all requests(each request is to a different contract address)
 # TODO: add job scheduling
@@ -28,7 +28,7 @@ str_url = whale_watch.build_url(time_interval, c_hash, bx)
 alert_phone_nums = ["+16462284704", "+15712769543"]
 # for num in alert_phone_nums:
 # whale_watch.send_sms(tw, "hello this is a test", "+15712769543")
-new_whale_data = whale_watch.process_token_addy(str_url, 'whale_conf.json', ether_api, tw, alert_phone_nums, time_interval)
-print("\n\nnew whale data is")
-print(new_whale_data)
-whale_watch.close_conf('whale_conf.json', new_whale_data)
+# new_whale_data = whale_watch.process_token_addy(str_url, 'whale_conf.json', ether_api, tw, alert_phone_nums, time_interval)
+# print("\n\nnew whale data is")
+# print(new_whale_data)
+# whale_watch.close_conf('whale_conf.json', new_whale_data)
