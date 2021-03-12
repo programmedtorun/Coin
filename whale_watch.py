@@ -130,7 +130,7 @@ def get_bitquery_data(time_interval, limit): # , filename
     return resp
 
 # token_conf = json file that has all tokens we care about
-def process_token_addy_bitquery(time_interval, limit, token_conf):
+def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
     bit_query = get_bitquery_data(time_interval, limit)
     bit_query_json = json.loads(bit_query.text)
     tokens = open_conf(token_conf)
@@ -143,37 +143,46 @@ def process_token_addy_bitquery(time_interval, limit, token_conf):
         if alt_symbol == "WETH":  # record could be buy or sell, so forcing it to be the alt-coin, and NOT "WETH"
             alt_symbol = trade["buyCurrency"]["symbol"]
 
-
         if alt_symbol in tokens:
             if trade["buyCurrency"]["symbol"] == "WETH" and trade["buyAmount"] > tokens[alt_symbol]["eth_whale_thresh"]: #
                 print(trade["sellCurrency"]["symbol"])
                 print("thresh: {}".format(tokens[alt_symbol]["eth_whale_thresh"]))
 
-                nyc_time = utc_xfr_bitquery(trade["block"]["timestamp"]["time"])
+                nyc_time = utc_xfr_bitquery(trade["block"]["timestamp"]["time"])[5:]
                 # not getting wallet balance in the bitquery MVP (response only has token
                 # contract addresses and transaction addresses, I know we could get the
-                # balance from the transaction using the etherscan api,
-                # but not sure how useful it is at the moment...
-                # whale_eth_bal = get_whale_eth_bal()
+                # balance from the transaction using the etherscan api, but not sure how
+                # useful it is at the moment..whale_eth_bal = get_whale_eth_bal()
 
-                # tx_dict = {"symbol": dex_tx["sellSymbol"], "tx_time": nyc_time,
-                #            "amount_buy": dex_tx["amountBuy"], "tx_hash": dex_tx["tx_hash"],
-                #            "wh_wallet_bal": whale_eth_bal, "tx_sender": dex_tx["tx_sender"]}
-                #
-                # # adding whale data to config
-                # tokens[dex_tx["sellSymbol"]]["recent_wh_buys"].append(tx_dict)
-                # tokens[dex_tx["sellSymbol"]]["all_wh_buys"].append(tx_dict)
+                tx_dict = {"symbol": alt_symbol, "tx_time": nyc_time,
+                            "amount_buy": trade["buyAmount"], "tx_hash": trade["transaction"]["hash"]}
+
+                # adding whale data to config
+                tokens[alt_symbol]["recent_wh_buys"].append(tx_dict)
+                tokens[alt_symbol]["all_wh_buys"].append(tx_dict)
                 #
                 # # print info whale to console TODO: add logging
-                # message = "A whale sighting!!! \n{} ETH buy \non {} \nfor ticker {}\nwwb: " \
-                #           "{} ETH\n".format(dex_tx["amountBuy"], nyc_time, dex_tx["sellSymbol"], whale_eth_bal)
-                #
-                # # print whale to console
-                # print(message + "\n*********************\n")
+                message = "A whale sighting!!! \n{} ETH buy \non {} \nfor ticker {}".format(trade["buyAmount"], nyc_time, alt_symbol)
+                # print whale to console
+                print(message + "\n*********************\n")
+                process_sms(tokens[alt_symbol]["recent_wh_buys"], alt_symbol, time_interval, tokens[alt_symbol]["eth_whale_thresh"], recv_nums, tw)
 
-        #     print("bought {} symbol".format(symbol))
-
-    # close_conf(filename, resp.text)
+def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):
+    buys_info = ""
+    b_ct = 1
+    for buy in buys:
+        tx_tm = str(buy["tx_time"])
+        amt = str(buy["amount_buy"])
+        addition = "\nBUY #{} ->\ntime: {}\namt: {}\n".format(b_ct, tx_tm, amt)
+        buys_info += addition
+        b_ct += 1
+    message = "Whale sighting!! sym: {}, {} buys in {}min!\nETH Thresh: {}\n" \
+              "Buys info: \n{}\n" \
+        .format(sym, len(buys), time_interval, eth_thresh, buys_info)
+    # send sms to Walt and Patrick
+    for num in recv_nums:
+        send_sms(tw, message, num)
+    return message
     # print(json.dumps(json.loads(resp.text), indent=4))
 # Takes url and config file
 # returns a processed config file (python dict)
