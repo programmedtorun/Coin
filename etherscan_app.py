@@ -1,6 +1,9 @@
 import etherscan
 import json
 import requests
+from datetime import datetime, timedelta
+import re
+
 
 # experimentation file for etherscan api
 # needs https://pypi.org/project/etherscan/
@@ -40,14 +43,19 @@ import requests
 # )
 # print(token_transations)
 
-payload = {"query":'query ($network: EthereumNetwork!,$limit: Int!,$offset: Int!$from: ISO8601DateTime,$till: ISO8601DateTime){                    ethereum(network: $network){                      dexTrades(options:{desc: ["block.height","tradeIndex"], limit: $limit, offset: $offset},                        date: {since: $from till: $till }                        ) {                          block {                            timestamp {                              time (format: "%Y-%m-%d %H:%M:%S")                            }                           height                          }                          tradeIndex                          protocol                          exchange {                            fullName                          }                          smartContract {                            address {                              address                              annotation                            }                          }                          buyAmount                          buyCurrency {                            address                            symbol                          }                          sellAmount                          sellCurrency {                            address                            symbol                          }                          transaction {                            hash                          }                      }                    }                  }',"variables":'{"limit":100,"offset":10,"network":"ethereum","from":"2021-03-11","till":null,"dateFormat":"%Y-%m-%d"}'}
 
-
-
-
-
-resp = requests.post("https://graphql.bitquery.io/", data=payload)
-print(resp.content)
+# test code - this request query builder works.
+# time_interval = 5  # in minutes
+# time = datetime.utcnow() - timedelta(minutes=time_interval)
+# from_time = time.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+# variables = "{\"limit\":" + str(100) + ",\"offset\":10,\"network\":\"ethereum\",\"from\":\"" + from_time + "\",\"till\":null,\"dateFormat\":\"%Y-%m-%dT%H:%M:%S.000Z\"}"
+# payload = {
+#     "query": 'query ($network: EthereumNetwork!,$limit: Int!,$offset: Int!$from: ISO8601DateTime,$till: ISO8601DateTime){ethereum(network: $network){dexTrades(options:{desc: ["block.height","tradeIndex"], limit: $limit, offset: $offset},date: {since: $from till: $till }) {block {timestamp {time (format: "%Y-%m-%d %H:%M:%S")}height}                          tradeIndex                          protocol                          exchange {                            fullName                          }                          smartContract {                            address {                              address                              annotation                            }                          }                          buyAmount                          buyCurrency {                            address                            symbol                          }                          sellAmount                          sellCurrency {                            address                            symbol                          }                          transaction {                            hash                          }                      }                    }                  }',
+#     "variables": variables}
+#
+# resp = requests.post("https://graphql.bitquery.io/", data=payload)
+# print(resp.headers)
+# print(json.dumps(json.loads(resp.text), indent=4))
 
 # res = requests.get("https://api.etherscan.io/api?module=account&action=tokentx&contractaddress={}&page=1&offset=100&sort=asc&apikey={}".format("0x1cbb83ebcd552d5ebf8131ef8c9cd9d9bab342bc", api_key))
 # json_data = json.loads(res.text)

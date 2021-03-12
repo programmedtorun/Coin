@@ -9,12 +9,17 @@ ctr_hash_list = []
 # note: in the request we will have to figure out the intervals to segment,
 # here I'm segmenting every 60 min in the future we will call build_url
 # in a loop and create a list of low caps to poll
-time_interval = 1400  # in minutes
-ether_api = whale_watch.get_ether_api('ES_API_KEY_FILE.json')
-bx = whale_watch.get_bloxy_api('BLOXY_API.json')
-tw = whale_watch.get_twilio('TWILIO_STUFF.json')
-str_url = whale_watch.build_url(time_interval, c_hash, bx)
-print(str_url)
+# time_interval = 1400  # in minutes
+
+# get's last 5 min of trades, limits 2 arg, writes to file 3 arg
+# whale_watch.create_bitqr_req(5, 1000, 'bitquery.json')
+whale_watch.process_token_addy_bitquery(5, 1000, 'whale_conf.json')
+
+# ether_api = whale_watch.get_ether_api('ES_API_KEY_FILE.json')
+# bx = whale_watch.get_bloxy_api('BLOXY_API.json')
+# tw = whale_watch.get_twilio('TWILIO_STUFF.json')
+# str_url = whale_watch.build_url(time_interval, c_hash, bx)
+# print(str_url)
 # TODO: add all coins we want whale watch to monitor (include ETH whale buy thresholds)
 # TODO: add looping mechanism for processing all requests(each request is to a different contract address)
 # TODO: add job scheduling
