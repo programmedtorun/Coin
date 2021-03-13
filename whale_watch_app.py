@@ -22,10 +22,14 @@ import time
 #________________________________________________________________________________
 tw = whale_watch.get_twilio('TWILIO_STUFF.json')
 alert_phone_nums = ["+16462284704", "+15712769543"]
+time_segment = 5
+limit = 10000
+print("here")
 
 def job():
     # print("whale_watch running on thread %s" % threading.current_thread())
-    updated_whale_data = whale_watch.process_bitquery(5, 10000, 'whale_conf.json', alert_phone_nums, tw)
+    print("phones {}, time_segment {}, limit {}".format(alert_phone_nums, time_segment, limit))
+    updated_whale_data = whale_watch.process_bitquery(time_segment, limit, 'whale_conf.json', alert_phone_nums, tw)
     whale_watch.close_conf('whale_conf.json', updated_whale_data)
 
 # Function not used, ask Walt if multi threading is needed

@@ -131,42 +131,47 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
     bit_query_json = json.loads(bit_query.text)
     tokens = open_conf(token_conf)
     for token in tokens:
-        tokens[token]["recent_wh_buys"].clear() # always clear out latest tokens list
+        if not isinstance(tokens[token], list): # ignore tx_hash_list
+            tokens[token]["recent_wh_buys"].clear() # always clear out latest tokens list
     dex_trades = bit_query_json["data"]["ethereum"]["dexTrades"]
-
+    print(dex_trades)
+    # collect symbols ->
     for trade in dex_trades:
         alt_symbol = trade["sellCurrency"]["symbol"]
+
         if alt_symbol == "WETH":  # record could be buy or sell, so forcing it to be the alt-coin, and NOT "WETH"
             alt_symbol = trade["buyCurrency"]["symbol"]
 
         if alt_symbol in tokens:
             if trade["buyCurrency"]["symbol"] == "WETH" and trade["buyAmount"] > tokens[alt_symbol]["eth_whale_thresh"]: #
-                print(trade["sellCurrency"]["symbol"])
-                print("thresh: {}".format(tokens[alt_symbol]["eth_whale_thresh"]))
+                print("\n\nsym: {}\nthresh: {}\nbuy amt: {}".format(trade["sellCurrency"]["symbol"],
+                                                                    tokens[alt_symbol]["eth_whale_thresh"],
+                                                                    trade["buyAmount"]))
 
                 nyc_time = utc_xfr_bitquery(trade["block"]["timestamp"]["time"])[5:]
                 # not getting wallet balance in the bitquery MVP (response only has token
                 # contract addresses and transaction addresses, I know we could get the
                 # balance from the transaction using the etherscan api, but not sure how
                 # useful it is at the moment..whale_eth_bal = get_whale_eth_bal()
-
-                tx_dict = {"symbol": alt_symbol, "tx_time": nyc_time,
-                            "amount_buy": trade["buyAmount"], "tx_hash": trade["transaction"]["hash"]}
-
-                # adding whale data to config
-                tokens[alt_symbol]["recent_wh_buys"].append(tx_dict)
-                tokens[alt_symbol]["all_wh_buys"].append(tx_dict)
-
-                message = process_sms(tokens[alt_symbol]["recent_wh_buys"], alt_symbol, time_interval, tokens[alt_symbol]["eth_whale_thresh"], recv_nums, tw)
-                print(message)
-                return tokens
+                if trade["transaction"]["hash"] not in tokens["tx_hash_list"]:
+                    tx_dict = {"symbol": alt_symbol, "tx_time": nyc_time,
+                                "amount_buy": trade["buyAmount"], "tx_hash": trade["transaction"]["hash"]}
+                    tokens["tx_hash_list"].append(trade["transaction"]["hash"])
+                    # adding whale data to config
+                    tokens[alt_symbol]["recent_wh_buys"].append(tx_dict)
+    for token in tokens:
+        if not isinstance(tokens[token], list):
+            process_sms(tokens[token]["recent_wh_buys"], token, time_interval, tokens[token]["eth_whale_thresh"], recv_nums, tw)
+    return tokens
 
 def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):
+    if len(buys) == 0:
+        return "No whale spotted for {}".format(sym)
     buys_info = ""
     b_ct = 1
     for buy in buys:
-        tx_tm = str(buy["tx_time"])
-        amt = str(buy["amount_buy"])
+        tx_tm = str(buy["tx_time"])[:14]
+        amt = str(buy["amount_buy"])[:7]
         addition = "\nBUY #{} ->\ntime: {}\namt: {}\n".format(b_ct, tx_tm, amt)
         buys_info += addition
         b_ct += 1
