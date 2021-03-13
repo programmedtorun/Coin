@@ -52,6 +52,7 @@ c_hash = "0x1cbb83ebcd552d5ebf8131ef8c9cd9d9bab342bc"
 # list of perhaps 500 (?)
 ctr_hash_list = []
 
+# for BLOXY REST API
 # builds a request url to bloxy, returns a string
 # time_interval is a nubmer in minutes
 # ctr_hash is a contract token address
@@ -68,12 +69,19 @@ def build_url(time_interval, ctr_hash, bloxy_api):
            format(ctr_hash, url_en_xmg_utc_time, bloxy_api)
 
 # takes a utc transaction time and converts to nyc time
-def utc_xfr(tx_time):
+def utc_xfr_bloxy(tx_time):
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
     time = tx_time[:19]  # transaction time
-    print("time is: {}".format(time))
     utc = datetime.strptime(time, '%Y-%m-%dT%H:%M:%S')
+    utc = utc.replace(tzinfo=from_zone)
+    return str(utc.astimezone(to_zone))
+
+def utc_xfr_bitquery(bk_time):
+    from_zone = tz.tzutc()
+    to_zone = tz.tzlocal()
+    bk_time = bk_time  # transaction time
+    utc = datetime.strptime(bk_time, '%Y-%m-%d %H:%M:%S')
     utc = utc.replace(tzinfo=from_zone)
     return str(utc.astimezone(to_zone))
 
@@ -104,6 +112,77 @@ def close_conf(file_name, data_update):
     with open(file_name, 'w') as outfile:
         json.dump(data_update, outfile, default=str)
 
+# creates/makes the bitquery request to get DEX trades
+# time_interval in minutes. limit is a number that limits resp count
+def get_bitquery_data(time_interval, limit):
+    pre = datetime.utcnow() - timedelta(minutes=time_interval)
+    from_time = pre.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    variables = "{\"limit\":" + str(
+        limit) + ",\"offset\":10,\"network\":\"ethereum\",\"from\":\"" + from_time + "\",\"till\":null,\"dateFormat\":\"%Y-%m-%dT%H:%M:%S.000Z\"}"
+    payload = {
+        "query": 'query ($network: EthereumNetwork!,$limit: Int!,$offset: Int!$from: ISO8601DateTime,$till: ISO8601DateTime){ethereum(network: $network){dexTrades(options:{desc: ["block.height","tradeIndex"], limit: $limit, offset: $offset},date: {since: $from till: $till }) {block {timestamp {time (format: "%Y-%m-%d %H:%M:%S")}height}                          tradeIndex                          protocol                          exchange {                            fullName                          }                          smartContract {                            address {                              address                              annotation                            }                          }                          buyAmount                          buyCurrency {                            address                            symbol                          }                          sellAmount                          sellCurrency {                            address                            symbol                          }                          transaction {                            hash                          }                      }                    }                  }',
+        "variables": variables}
+    resp = requests.post("https://graphql.bitquery.io/", data=payload)
+    return resp
+
+# token_conf = json file that has all tokens we care about
+def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
+    bit_query = get_bitquery_data(time_interval, limit)
+    bit_query_json = json.loads(bit_query.text)
+    tokens = open_conf(token_conf)
+    for token in tokens:
+        if not isinstance(tokens[token], list): # ignore tx_hash_list
+            tokens[token]["recent_wh_buys"].clear() # always clear out latest tokens list
+    dex_trades = bit_query_json["data"]["ethereum"]["dexTrades"]
+    print(dex_trades)
+    # collect symbols ->
+    for trade in dex_trades:
+        alt_symbol = trade["sellCurrency"]["symbol"]
+
+        if alt_symbol == "WETH":  # record could be buy or sell, so forcing it to be the alt-coin, and NOT "WETH"
+            alt_symbol = trade["buyCurrency"]["symbol"]
+
+        if alt_symbol in tokens:
+            if trade["buyCurrency"]["symbol"] == "WETH" and trade["buyAmount"] > tokens[alt_symbol]["eth_whale_thresh"]: #
+                print("\n\nsym: {}\nthresh: {}\nbuy amt: {}".format(trade["sellCurrency"]["symbol"],
+                                                                    tokens[alt_symbol]["eth_whale_thresh"],
+                                                                    trade["buyAmount"]))
+
+                nyc_time = utc_xfr_bitquery(trade["block"]["timestamp"]["time"])[5:]
+                # not getting wallet balance in the bitquery MVP (response only has token
+                # contract addresses and transaction addresses, I know we could get the
+                # balance from the transaction using the etherscan api, but not sure how
+                # useful it is at the moment..whale_eth_bal = get_whale_eth_bal()
+                if trade["transaction"]["hash"] not in tokens["tx_hash_list"]:
+                    tx_dict = {"symbol": alt_symbol, "tx_time": nyc_time,
+                                "amount_buy": trade["buyAmount"], "tx_hash": trade["transaction"]["hash"]}
+                    tokens["tx_hash_list"].append(trade["transaction"]["hash"])
+                    # adding whale data to config
+                    tokens[alt_symbol]["recent_wh_buys"].append(tx_dict)
+    for token in tokens:
+        if not isinstance(tokens[token], list):
+            process_sms(tokens[token]["recent_wh_buys"], token, time_interval, tokens[token]["eth_whale_thresh"], recv_nums, tw)
+    return tokens
+
+def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):
+    if len(buys) == 0:
+        return "No whale spotted for {}".format(sym)
+    buys_info = ""
+    b_ct = 1
+    for buy in buys:
+        tx_tm = str(buy["tx_time"])[:14]
+        amt = str(buy["amount_buy"])[:7]
+        addition = "\nBUY #{} ->\ntime: {}\namt: {}\n".format(b_ct, tx_tm, amt)
+        buys_info += addition
+        b_ct += 1
+    message = "Whale sighting!! sym: {}, {} buys in {}min!\nETH Thresh: {}\n" \
+              "Buys info: \n{}\n" \
+        .format(sym, len(buys), time_interval, eth_thresh, buys_info)
+    # send sms to Walt and Patrick
+    for num in recv_nums:
+        send_sms(tw, message, num)
+    return message
+
 # Takes url and config file
 # returns a processed config file (python dict)
 # return value should be arg to close_conf() to write data
@@ -125,7 +204,7 @@ def process_token_addy(url, conf_file, es, tw, numbers, time_interval):
         for dex_tx in tx_json_data:
             if dex_tx["buySymbol"] == "WETH" and dex_tx["amountBuy"] >= tokens[dex_tx["sellSymbol"]]["eth_whale_thresh"]:
 
-                nyc_time = utc_xfr(dex_tx["tx_time"])
+                nyc_time = utc_xfr_bloxy(dex_tx["tx_time"])
                 whale_eth_bal = get_whale_eth_bal(dex_tx["tx_sender"], 18, es)
                 time.sleep(0.5)
 
