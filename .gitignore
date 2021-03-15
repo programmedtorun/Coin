@@ -1,4 +1,5 @@
 .DS_Store
+.idea/
 YTD_API.json
 CC_API_KEY_FILE.json
 BLOXY_API.json
@@ -6,4 +7,10 @@ TWILIO_STUFF.json
 ES_API_KEY_FILE.json
 CMC_API_KEY_FILE.json
 TW_KEY_FILE.json
+cmc_master_list.json
+cc_master_list.json
+whale_output.json
+whale_error.json
+output.txt
+error.txt
 __pycache__

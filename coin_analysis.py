@@ -102,6 +102,32 @@ class Analysis(object):
             coin["social_data"] = j_res
         return coin_id_list
 
+
+    def get_financials(self):
+        self.create_cmc_hash_file()
+
+        data = self.load_cmc_hash()['data']
+
+        low_caps = {}
+        # Get low market cap coins:
+        for coin in data:
+            mk_cap = coin['quote']['USD']['market_cap']
+            # print(coin['quote']['USD']['market_cap'])
+            if mk_cap < 5000000 and mk_cap != 0 and mk_cap > 200000:
+                low_caps[coin['symbol']] = {'max_supply': coin['max_supply'],
+                                            'circulating_supply': coin['circulating_supply'],
+                                            'vol_24hr': coin['quote']['USD']['volume_24h'],
+                                            'market_cap': coin['quote']['USD']['market_cap']
+                                            }
+        #
+        ct = 0
+        for coin in low_caps:
+            ct += 1
+            print("{} mk cp --> {}".format(coin, low_caps[coin]['market_cap']))
+        print("count is:   {}".format(ct))
+        print("loading and returning financials in memory ")
+        return low_caps
+
     # returns list of dicts i.e. [{cc_id: , cc_symbol: , social_points: , market_cap: ,
     #                             volume_24h: , percent_change_1h: ,
     #                             percent_change_24h: , percent_change_7d: }]
@@ -167,4 +193,3 @@ class Analysis(object):
         return sorted(ndx_list, key=lambda i: i['buy_level'])
 
     # TODO get coin press releases and top mentioned coins from cg - could be a good inputs to buy list sorting!
-
