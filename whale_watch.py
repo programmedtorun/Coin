@@ -138,14 +138,16 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
     # collect symbols ->
     for trade in dex_trades:
         alt_symbol = trade["sellCurrency"]["symbol"]
-
-        if alt_symbol == "WETH":  # record could be buy or sell, so forcing it to be the alt-coin, and NOT "WETH"
+        alt_hash = trade["sellCurrency"]["address"]
+        if alt_hash == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":  # record could be buy or sell, so forcing it to be the alt-coin, and NOT "WETH"
             alt_symbol = trade["buyCurrency"]["symbol"]
+            alt_hash = trade["buyCurrency"]["address"]
 
-        if alt_symbol in tokens:
-            if trade["buyCurrency"]["symbol"] == "WETH" and trade["buyAmount"] > tokens[alt_symbol]["eth_whale_thresh"]: #
+        if alt_hash in tokens:
+            if trade["buyCurrency"]["address"] == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" and \
+                    trade["buyAmount"] > tokens[alt_hash]["eth_whale_thresh"]:
                 print("\n\nsym: {}\nthresh: {}\nbuy amt: {}".format(trade["sellCurrency"]["symbol"],
-                                                                    tokens[alt_symbol]["eth_whale_thresh"],
+                                                                    tokens[alt_hash]["eth_whale_thresh"],
                                                                     trade["buyAmount"]))
 
                 nyc_time = utc_xfr_bitquery(trade["block"]["timestamp"]["time"])[5:]
@@ -158,10 +160,11 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
                                 "amount_buy": trade["buyAmount"], "tx_hash": trade["transaction"]["hash"]}
                     tokens["tx_hash_list"].append(trade["transaction"]["hash"])
                     # adding whale data to config
-                    tokens[alt_symbol]["recent_wh_buys"].append(tx_dict)
-    for token in tokens:
-        if not isinstance(tokens[token], list):
-            process_sms(tokens[token]["recent_wh_buys"], token, time_interval, tokens[token]["eth_whale_thresh"], recv_nums, tw)
+                    tokens[alt_hash]["recent_wh_buys"].append(tx_dict)
+    for hash in tokens:
+        if not isinstance(tokens[hash], list):
+            process_sms(tokens[hash]["recent_wh_buys"], tokens[hash]["symbol"],
+                        time_interval, tokens[hash]["eth_whale_thresh"], recv_nums, tw)
     return tokens
 
 def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):

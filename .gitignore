@@ -9,8 +9,9 @@ CMC_API_KEY_FILE.json
 TW_KEY_FILE.json
 cmc_master_list.json
 cc_master_list.json
-whale_output.json
-whale_error.json
+whale_output.txt
+whale_error.txt
 output.txt
 error.txt
+venv/
 __pycache__
