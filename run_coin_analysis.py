@@ -1,10 +1,5 @@
-from coin_analysis import Analysis
-from collect import Collect
-import urllib
-import requests
-from pycoingecko import CoinGeckoAPI
-import csv
-import json
+from analysis.coin_analysis import Analysis
+from analysis.collect import Collect
 import time
 
 # example manual lists

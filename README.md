@@ -1,3 +1,9 @@
+NOTE README IS OUT OF DATE. CHECK comments in files and also
+
+whale_watch/whale_conf.txt for more information. 
+
+
+
 I'm sort of collecting my thoughts in the following paragraphs.
 
 What exactly is this thing trying to do?

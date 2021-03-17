@@ -1,0 +1,38 @@
+This file explains the format of the whale_conf.json file and gives an example.
+
+the whale_conf.json file will be a dict of dicts, the keys are coin address hashes.
+each hash will have keys "symbol" (token ticker), "wh_buys_20m" (list of dicts with
+buy info from only the last 20 min)-the app will sense if there is something in this list, if there
+is a buy then trigger an alarm, the alarm will send a text and email with the recent buy amount
+and also all big buy history (uses too much space in texts to be useful, but can potentially use
+history down the line)
+
+(can also pull in tokenomics API data from CMC as brief
+summary, this will be a bit later)
+
+Every 5 min if there are no big buys for a token the recent_wh_buys list will be deleted and
+write new ones if there are any.
+
+{
+  "0x1cbb83ebcd552d5ebf8131ef8c9cd9d9bab342bc": {
+    "eth_whale_thresh" : "30",
+    "symbol" : "NFY",
+    "contract_hash" : "0x1cbb83ebcd552d5ebf8131ef8c9cd9d9bab342bc",
+    "recent_wh_buys" : [],
+    "all_wh_buys" : []
+  },
+  "0xb6ff96b8a8d214544ca0dbc9b33f7ad6503efd32" : {
+    "eth_whale_thresh" : "20",
+    "symbol": "SYNC",
+    "contract_hash" : "0xb6ff96b8a8d214544ca0dbc9b33f7ad6503efd32",
+    "recent_wh_buys" : [],
+    "all_wh_buys" : []
+  },
+  "0x09fe5f0236f0ea5d930197dce254d77b04128075" : {
+    "eth_whale_thresh" : "5",
+    "symbol" : "WCK",
+    "contract_hash" : "0x09fe5f0236f0ea5d930197dce254d77b04128075",
+    "recent_wh_buys" : [],
+    "all_wh_buys" : []
+  }
+}

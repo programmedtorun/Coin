@@ -1,24 +1,18 @@
-import whale_watch
+import whale_watch.whale_watch as ww
 import schedule
 import threading
 import time
+import pathlib
 
-# TODO: add all coins we want whale watch to monitor (include ETH whale buy thresholds)
-# TODO: add logging
+cur_path = pathlib.Path(__file__).parent.absolute()
 
-
-# bloxy stuff
-# bx = whale_watch.get_bloxy_api('BLOXY_API.json')
-# str_url = whale_watch.build_url(time_interval, c_hash, bx)
-# whale_data = whale_watch.process_token_addy(str_url, 'whale_conf.json', ether_api, tw, p_nums, time_interval)
-# print("\n\nnew whale data is")
-# print(whale_data)
-# whale_watch.close_conf('whale_conf.json', new_whale_data)
-
-tw = whale_watch.get_twilio('TWILIO_STUFF.json')
+# configure whale_watch_app's query calls with time_segment and limit and phone numbers to alert
+tw_file = "{}/API_FILES/TWILIO_STUFF.json".format(cur_path)
+tw = ww.get_twilio(tw_file)
 alert_phone_nums = ["+16462284704", "+15712769543"]
 time_segment = 5
 limit = 50000
+
 
 # run line command --> time python3 whale_watch_app.py > whale_output.txt  2> whale_error.txt &
 def flush_logs(error, output):
@@ -26,15 +20,16 @@ def flush_logs(error, output):
     open(output, 'w').close()
 
 
-flush_logs('whale_error.txt', 'whale_output.txt')
-print("started")
+error_file = "{}/whale_watch/whale_error.txt".format(cur_path)
+output_file = "{}/whale_watch/whale_output.txt".format(cur_path)
+flush_logs(error_file, output_file)
+print("started.... whale watch, first sightings in 5 minutes...")
 
 
 def job():
     # print("whale_watch running on thread %s" % threading.current_thread())
-    print("phones {}, time_segment {}, limit {}".format(alert_phone_nums, time_segment, limit))
-    updated_whale_data = whale_watch.process_bitquery(time_segment, limit, 'whale_conf.json', alert_phone_nums, tw)
-    whale_watch.close_conf('whale_conf.json', updated_whale_data)
+    updated_whale_data = ww.process_bitquery(time_segment, limit, 'whale_conf.json', alert_phone_nums, tw)
+    ww.close_conf('/Users/patrickskelley/Desktop/Programming/Projects/Coin2/Coin/whale_watch/whale_conf.json', updated_whale_data)
 
 
 # Function not used, ask Walt if multi threading is needed
@@ -50,3 +45,12 @@ schedule.every(5).minutes.do(job)
 while True:
     schedule.run_pending()
     time.sleep(1)
+
+
+# bloxy stuff (not used currently, bitquery has replaced our use of bloxy rest api)
+# bx = whale_watch.get_bloxy_api('BLOXY_API.json')
+# str_url = whale_watch.build_url(time_interval, c_hash, bx)
+# whale_data = whale_watch.process_token_addy(str_url, 'whale_conf.json', ether_api, tw, p_nums, time_interval)
+# print("\n\nnew whale data is")
+# print(whale_data)
+# whale_watch.close_conf('whale_conf.json', new_whale_data)
