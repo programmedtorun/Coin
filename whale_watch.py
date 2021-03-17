@@ -19,11 +19,13 @@ def get_twilio(file):
     tw = Client(tw_keys['SID'], tw_keys['AUTH_TOKEN'])
     return tw
 
+
 # bloxy api - ** CAUTION VERY FEW CALLS IN TRIAL (less than 50)**
 def get_bloxy_api(file):
     with open(file, 'r') as f:
         bx_key = json.loads(f.read())
     return bx_key['API_KEY']
+
 
 # Get API Key for etherscan (needed to get whale's ETH bal)
 def get_ether_api(file):
@@ -36,6 +38,7 @@ def get_ether_api(file):
     )
     return es
 
+
 def send_sms(tw_client, msg, number):
     ms_sid = os.environ['MSG_SVC_SID']
     tw_client.messages.create(
@@ -44,21 +47,9 @@ def send_sms(tw_client, msg, number):
         to=number
     )
 
-# NFY contract hash for testing
-# contract hashes can be found on the token etherscan pg under contract:
-c_hash = "0x1cbb83ebcd552d5ebf8131ef8c9cd9d9bab342bc"
-
-# Will use a list of contract hashes, will be extremely small cap tokens
-# list of perhaps 500 (?)
-ctr_hash_list = []
 
 # for BLOXY REST API
 # builds a request url to bloxy, returns a string
-# time_interval is a nubmer in minutes
-# ctr_hash is a contract token address
-# bloxy_api is the api key
-# in the future we can use this function to
-# build a list of 500+ contract urls
 def build_url(time_interval, ctr_hash, bloxy_api):
     xmg = datetime.utcnow() - timedelta(minutes=time_interval)  # x minutes ago = xmg
     string_xmg = xmg.strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -67,6 +58,7 @@ def build_url(time_interval, ctr_hash, bloxy_api):
            "token={}&from_date={}&" \
            "key={}&format=structure".\
            format(ctr_hash, url_en_xmg_utc_time, bloxy_api)
+
 
 # takes a utc transaction time and converts to nyc time
 def utc_xfr_bloxy(tx_time):
@@ -77,6 +69,7 @@ def utc_xfr_bloxy(tx_time):
     utc = utc.replace(tzinfo=from_zone)
     return str(utc.astimezone(to_zone))
 
+
 def utc_xfr_bitquery(bk_time):
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
@@ -84,6 +77,7 @@ def utc_xfr_bitquery(bk_time):
     utc = datetime.strptime(bk_time, '%Y-%m-%d %H:%M:%S')
     utc = utc.replace(tzinfo=from_zone)
     return str(utc.astimezone(to_zone))
+
 
 # takes an individual's eth address and contract decimal precision
 # decimal precision is usually 18
@@ -97,11 +91,13 @@ def get_whale_eth_bal(tx, dec_prec, es):
         whale_eth_bal = whale_eth_bal[0:len(whale_eth_bal) - dec_prec] + '.' + whale_eth_bal[-dec_prec:]
     return whale_eth_bal
 
+
 # opens whale_conf.json and returns as python dict
 def open_conf(file):
     with open(file, 'r') as json_file:
         data = json.load(json_file)
     return data
+
 
 # turns python dict into json and writes new file
 # should be example of writing over whole file
@@ -111,6 +107,7 @@ def close_conf(file_name, data_update):
     file.close()
     with open(file_name, 'w') as outfile:
         json.dump(data_update, outfile, default=str)
+
 
 # creates/makes the bitquery request to get DEX trades
 # time_interval in minutes. limit is a number that limits resp count
@@ -125,6 +122,7 @@ def get_bitquery_data(time_interval, limit):
     resp = requests.post("https://graphql.bitquery.io/", data=payload)
     return resp
 
+
 # token_conf = json file that has all tokens we care about
 def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
     bit_query = get_bitquery_data(time_interval, limit)
@@ -134,7 +132,6 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
         if not isinstance(tokens[token], list): # ignore tx_hash_list
             tokens[token]["recent_wh_buys"].clear() # always clear out latest tokens list
     dex_trades = bit_query_json["data"]["ethereum"]["dexTrades"]
-    print(dex_trades)
     # collect symbols ->
     for trade in dex_trades:
         alt_symbol = trade["sellCurrency"]["symbol"]
@@ -167,6 +164,7 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
                         time_interval, tokens[hash]["eth_whale_thresh"], recv_nums, tw)
     return tokens
 
+
 def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):
     if len(buys) == 0:
         return "No whale spotted for {}".format(sym)
@@ -185,6 +183,7 @@ def process_sms(buys, sym, time_interval, eth_thresh, recv_nums, tw):
     for num in recv_nums:
         send_sms(tw, message, num)
     return message
+
 
 # Takes url and config file
 # returns a processed config file (python dict)

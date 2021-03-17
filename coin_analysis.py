@@ -33,7 +33,7 @@ class Analysis(object):
 
     # ret hash of all coins on cmc
     def cmc_full_hash(self):
-        url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=3000"
+        url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=5000"
         api_key = self.cmc_api_key()
         res = requests.get(url, headers={"X-CMC_PRO_API_KEY": api_key})
         text_res = res.text
@@ -102,8 +102,7 @@ class Analysis(object):
             coin["social_data"] = j_res
         return coin_id_list
 
-
-    def get_financials(self):
+    def get_financials(self, low, high, vol_thresh):
         self.create_cmc_hash_file()
 
         data = self.load_cmc_hash()['data']
@@ -112,11 +111,12 @@ class Analysis(object):
         # Get low market cap coins:
         for coin in data:
             mk_cap = coin['quote']['USD']['market_cap']
+            vol = coin['quote']['USD']['volume_24h']
             # print(coin['quote']['USD']['market_cap'])
-            if mk_cap < 5000000 and mk_cap != 0 and mk_cap > 200000:
+            if mk_cap < high and mk_cap != 0 and mk_cap > low and vol > vol_thresh:
                 low_caps[coin['symbol']] = {'max_supply': coin['max_supply'],
                                             'circulating_supply': coin['circulating_supply'],
-                                            'vol_24hr': coin['quote']['USD']['volume_24h'],
+                                            'vol_24hr': vol,
                                             'market_cap': coin['quote']['USD']['market_cap']
                                             }
         #
@@ -127,6 +127,13 @@ class Analysis(object):
         print("count is:   {}".format(ct))
         print("loading and returning financials in memory ")
         return low_caps
+
+    def write_low_caps_to_json(self, file_name, low_caps):
+        file = open(file_name, 'r+')
+        file.truncate(0)
+        file.close()
+        with open(file_name, 'w') as outfile:
+            json.dump(low_caps, outfile, default=str)
 
     # returns list of dicts i.e. [{cc_id: , cc_symbol: , social_points: , market_cap: ,
     #                             volume_24h: , percent_change_1h: ,

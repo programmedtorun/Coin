@@ -18,7 +18,15 @@ import time
 tw = whale_watch.get_twilio('TWILIO_STUFF.json')
 alert_phone_nums = ["+16462284704", "+15712769543"]
 time_segment = 5
-limit = 100000
+limit = 50000
+
+# run line command --> time python3 whale_watch_app.py > whale_output.txt  2> whale_error.txt &
+def flush_logs(error, output):
+    open(error, 'w').close()
+    open(output, 'w').close()
+
+
+flush_logs('whale_error.txt', 'whale_output.txt')
 print("started")
 
 
