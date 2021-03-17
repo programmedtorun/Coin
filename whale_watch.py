@@ -7,6 +7,7 @@ import re
 from twilio.rest import Client
 import os
 import time
+import symbol_to_contract
 
 
 # returns twilio client
@@ -97,6 +98,14 @@ def open_conf(file):
     with open(file, 'r') as json_file:
         data = json.load(json_file)
     return data
+
+def add_sym_to_ctr_to_whale_conf(whale_conf_file):
+    data = open_conf(whale_conf_file)
+    dic = symbol_to_contract.get_map()
+    for key in dic:
+        addy = dic[key]["addy"]
+        data[addy] = {"eth_whale_thresh": dic[key]['thresh'], "symbol": key, "contract_hash": addy, "recent_wh_buys": [], "all_wh_buys": []}
+    close_conf(whale_conf_file, data)
 
 
 # turns python dict into json and writes new file

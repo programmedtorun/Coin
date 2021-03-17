@@ -102,6 +102,7 @@ class Analysis(object):
             coin["social_data"] = j_res
         return coin_id_list
 
+
     def get_financials(self, low, high, vol_thresh):
         self.create_cmc_hash_file()
 
