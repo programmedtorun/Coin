@@ -1,6 +1,9 @@
 from analysis.coin_analysis import Analysis
 from analysis.collect import Collect
 import time
+import pathlib
+
+base_path = pathlib.Path(__file__).parent.absolute()
 
 # example manual lists
 coin_list = [
@@ -33,7 +36,7 @@ coin_list_two = [
 print("Collecting hot coins to analyze...")
 time.sleep(2)
 print("...........")
-col = Collect(True, True, True, True)
+col = Collect(True, True, True, True, base_path)
 top_seven_list = []
 for coin in col.get_top_seven_symbol():
     top_seven_list.append(coin['symbol'])
@@ -51,7 +54,7 @@ print("COINS TO ANALYZE: {}".format(coins_to_analyze_list))
 
 time.sleep(2)
 print("************************************************************************************")
-anal = Analysis(coins_to_analyze_list)
+anal = Analysis(coins_to_analyze_list, base_path)
 print("pulling in data...")
 time.sleep(1.5)
 print("writing files...")

@@ -14,7 +14,7 @@ time_segment = 5
 limit = 50000
 
 
-# run line command --> time python3 whale_watch_app.py > whale_output.txt  2> whale_error.txt &
+# run line command --> time python3 whale_watch_app.py > whale_watch/whale_output.txt  2> whale_watch/whale_error.txt &
 def flush_logs(error, output):
     open(error, 'w').close()
     open(output, 'w').close()
@@ -28,8 +28,9 @@ print("started.... whale watch, first sightings in 5 minutes...")
 
 def job():
     # print("whale_watch running on thread %s" % threading.current_thread())
-    updated_whale_data = ww.process_bitquery(time_segment, limit, 'whale_conf.json', alert_phone_nums, tw)
-    ww.close_conf('/Users/patrickskelley/Desktop/Programming/Projects/Coin2/Coin/whale_watch/whale_conf.json', updated_whale_data)
+    conf = "{}/whale_watch/whale_conf.json".format(cur_path)
+    updated_whale_data = ww.process_bitquery(time_segment, limit, conf, alert_phone_nums, tw)
+    ww.close_conf(conf, updated_whale_data)
 
 
 # Function not used, ask Walt if multi threading is needed

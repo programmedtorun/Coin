@@ -99,6 +99,7 @@ def open_conf(file):
         data = json.load(json_file)
     return data
 
+
 # add data to json config quickly (via
 def add_sym_to_ctr_to_whale_conf(whale_conf_file):
     data = open_conf(whale_conf_file)
@@ -142,8 +143,8 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
         if not isinstance(tokens[token], list): # ignore tx_hash_list
             tokens[token]["recent_wh_buys"].clear() # always clear out latest tokens list
     dex_trades = bit_query_json["data"]["ethereum"]["dexTrades"]
-    # collect symbols ->
-    for trade in dex_trades:
+
+    for trade in dex_trades: # iterate over all trade objs
         alt_symbol = trade["sellCurrency"]["symbol"]
         alt_hash = trade["sellCurrency"]["address"]
         if alt_hash == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":  # record could be buy or sell, so forcing it to be the alt-coin, and NOT "WETH"
@@ -153,11 +154,11 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
         if alt_hash in tokens:
             if trade["buyCurrency"]["address"] == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" and \
                     trade["buyAmount"] > tokens[alt_hash]["eth_whale_thresh"]:
-                print("\n\nsym: {}\nthresh: {}\nbuy amt: {}".format(trade["sellCurrency"]["symbol"],
-                                                                    tokens[alt_hash]["eth_whale_thresh"],
-                                                                    trade["buyAmount"]))
-
                 nyc_time = utc_xfr_bitquery(trade["block"]["timestamp"]["time"])[5:]
+                print("\n\nsym: {}\nthresh: {}\nbuy amt: {}\ntime: {}".format(trade["sellCurrency"]["symbol"],
+                                                                    tokens[alt_hash]["eth_whale_thresh"],
+                                                                    trade["buyAmount"], nyc_time))
+
                 # not getting wallet balance in the bitquery MVP (response only has token
                 # contract addresses and transaction addresses, I know we could get the
                 # balance from the transaction using the etherscan api, but not sure how
@@ -168,10 +169,18 @@ def process_bitquery(time_interval, limit, token_conf, recv_nums, tw):
                     tokens["tx_hash_list"].append(trade["transaction"]["hash"])
                     # adding whale data to config
                     tokens[alt_hash]["recent_wh_buys"].append(tx_dict)
-    for hash in tokens:
-        if not isinstance(tokens[hash], list):
-            process_sms(tokens[hash]["recent_wh_buys"], tokens[hash]["symbol"],
-                        time_interval, tokens[hash]["eth_whale_thresh"], recv_nums, tw)
+    for t_hash in tokens:
+        if not isinstance(tokens[t_hash], list):
+            process_sms(tokens[t_hash]["recent_wh_buys"], tokens[t_hash]["symbol"],
+                        time_interval, tokens[t_hash]["eth_whale_thresh"], recv_nums, tw)
+    found_buy = False
+    for t_hash in tokens:
+        if not isinstance(tokens[t_hash], list):
+            if len(tokens[t_hash]["recent_wh_buys"]) > 0:
+                found_buy = True
+    dt = datetime.now()
+    dt_st = dt.strftime("%b, %d - %H:%M:%S")
+    print("No whale buys found on {}".format(dt_st)) if not found_buy else print("")
     return tokens
 
 

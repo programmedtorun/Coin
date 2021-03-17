@@ -16,16 +16,19 @@ import urllib
 class Collect(object):
 
     # defines the api's that we want to pull in
-    def __init__(self, coingecko=False, tw=False, youtube=False, cryptocompare=False):
+    def __init__(self, base_path, coingecko=False, tw=False, youtube=False, cryptocompare=False):
+        self.base_path = base_path
         self.coingecko = coingecko
         self.tw = tw
         self.youtube = youtube
         self.cryptocompare = cryptocompare
         if youtube:
-            with open('/Users/patrickskelley/Desktop/Programming/Projects/Coin2/Coin/API_FILES/YTD_API.json', 'r') as f:
+            yt_path = "{}/API_FILES/YTD_API.json".format(base_path)
+            with open(yt_path, 'r') as f:
                 self.ytd_api_keys = json.loads(f.read())
         if cryptocompare:
-            with open('/Users/patrickskelley/Desktop/Programming/Projects/Coin2/Coin/API_FILES/CC_API_KEY_FILE.json', 'r') as f:
+            cc_path = "{}/API_FILES/CC_API_KEY_FILE.json".format(base_path)
+            with open(cc_path, 'r') as f:
                 self.cc_api_keys = json.loads(f.read())
         if coingecko:
             self.cg = CoinGeckoAPI()
@@ -43,7 +46,8 @@ class Collect(object):
                                            "AdamHODL",
                                            "CryptosR_Us"
                                            ]
-            with open('/Users/patrickskelley/Desktop/Programming/Projects/Coin2/Coin/API_FILES/TW_KEY_FILE.json', 'r') as f:
+            twit_path = "{}/API_FILES/TW_KEY_FILE.json".format(base_path)
+            with open(twit_path, 'r') as f:
                 self.tw_api_keys = json.loads(f.read())
             self.twitter_api = twitter.Api(consumer_key=self.tw_api_keys["TW_API_KEY"],
                                            consumer_secret=self.tw_api_keys["TW_SECRET_KEY"],

@@ -5,8 +5,12 @@ import json
 class Analysis(object):
 
     # coin_list should not be too long!!
-    def __init__(self, coin_list):
+    def __init__(self, coin_list, base_path):
         self.coin_list = coin_list
+        self.base_path = base_path
+        self.cmc_json = "{}/json_data/cmc_master_list.json".format(base_path)
+        self.cc_json = "{}/json_data/cc_master_list.json".format(base_path)
+        print(self.base_path)
 
     # returns coin list as a string for easy printing.
     def return_coin_list(self):
@@ -18,12 +22,14 @@ class Analysis(object):
 
     # returns crypto compare API Key
     def cc_api_key(self):
-        with open('CC_API_KEY_FILE.json', 'r') as f:
+        cc_file = "{}/API_FILES/CC_API_KEY_FILE.json".format(self.base_path)
+        with open(cc_file, 'r') as f:
             cc_api_keys = json.loads(f.read())
         return cc_api_keys['CC_API_KEY']
 
     def cmc_api_key(self):
-        with open('CMC_API_KEY_FILE.json', 'r') as f:
+        cmc_file = "{}/API_FILES/CMC_API_KEY_FILE.json".format(self.base_path)
+        with open(cmc_file, 'r') as f:
             cmc_api_keys = json.loads(f.read())
         return cmc_api_keys['CMC_API_KEY']
 
@@ -37,40 +43,40 @@ class Analysis(object):
 
     # should be recreated to have most up-to-date information (for testing use load_cmc_hash())
     def create_cmc_hash_file(self):
-        file = open('cmc_master_list.json', 'r+')
+        file = open(self.cmc_json, 'r+')
         file.truncate(0)
         file.close()
-        hash = self.cmc_full_hash()
-        with open('cmc_master_list.json', 'w') as outfile:
-            json.dump(hash, outfile)
+        cmc_hash = self.cmc_full_hash()
+        with open(self.cmc_json, 'w') as outfile:
+            json.dump(cmc_hash, outfile)
 
     # loads coin has from file to in mem python dict
     def load_cmc_hash(self):
-        with open('cmc_master_list.json', 'r') as json_file:
+        with open(self.cmc_json, 'r') as json_file:
             data = json.load(json_file)
         return data
 
     # creates a .json file locally of cc_full_hash. use only periodically
     def create_cc_hash_file(self):
-        file = open('cc_master_list.json', 'r+')
+        file = open(self.cc_json, 'r+')
         file.truncate(0)
         file.close()
         hash = self.cc_full_hash()
-        with open('cc_master_list.json', 'w') as outfile:
+        with open(self.cc_json, 'w') as outfile:
             json.dump(hash, outfile)
 
     # loads coin has from file to in mem python dict
     def load_cc_hash(self):
-        with open('cc_master_list.json', 'r') as json_file:
+        with open(self.cc_json, 'r') as json_file:
             data = json.load(json_file)
         return data
 
     # returns a list of dicts symbol = symbol, cc_id = cc_id
     def get_coin_id_list(self):
-        hash = self.load_cc_hash()
+        cc_hash = self.load_cc_hash()
         id_list = []
         for coin in self.coin_list:
-            id_list.append({"symbol": coin, "cc_id": hash[coin]['Id']})
+            id_list.append({"symbol": coin, "cc_id": cc_hash[coin]['Id']})
         return id_list
 
     # ret hash of all coins on cc marked 'trading.' keys are coin tickers
@@ -116,7 +122,6 @@ class Analysis(object):
                                             'vol_24hr': vol,
                                             'market_cap': coin['quote']['USD']['market_cap']
                                             }
-        #
         ct = 0
         for coin in low_caps:
             ct += 1
@@ -195,5 +200,3 @@ class Analysis(object):
             elif 9999 >= social_normalizer >= 1000:
                 coin['buy_level'] = coin['buy_level'] + 1
         return sorted(ndx_list, key=lambda i: i['buy_level'])
-
-    # TODO get coin press releases and top mentioned coins from cg - could be a good inputs to buy list sorting!
