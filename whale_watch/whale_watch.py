@@ -82,8 +82,9 @@ def utc_xfr_bitquery(bk_time):
 
 # takes an individual's eth address and contract decimal precision
 # decimal precision is usually 18
-def get_whale_eth_bal(tx, dec_prec, es):
-    whale_eth_bal = str(es.get_eth_balance(tx))
+def get_whale_eth_bal(addy, dec_prec, es):
+    whale_eth_bal = str(es.get_eth_balance(addy))
+    print("whale_eth_bal is: {}".format(whale_eth_bal))
     if len(whale_eth_bal) < dec_prec:  # under 0.1 eth
         whale_eth_bal = '0.' + ('0' * (dec_prec - len(whale_eth_bal))) + whale_eth_bal
     elif len(whale_eth_bal) == dec_prec:  # under 1 eth
