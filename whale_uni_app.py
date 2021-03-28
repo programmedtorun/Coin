@@ -8,6 +8,15 @@ import threading
 import time
 import pathlib
 
+# Simply run this file and every 5 minutes the etherscan api will be called
+# and pull in the information in the whale_uni_app.json file and cross
+# reference this with each whale's address. It will look for differences
+# in transaction count, if it finds differences in the last 5 minutes
+# and if these were uniswap transactions then it will text the numbers in
+# the alert_phone_nums list and provide links to each transcation in the
+# text message. note it is tricky to get price and token ticker info from
+# the etherscan api. so providing links to transactions works just as well
+
 cur_path = pathlib.Path(__file__).parent.absolute()
 
 alert_phone_nums = ["+15712769543", "+16462284704"]
