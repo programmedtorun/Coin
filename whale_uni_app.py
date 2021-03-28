@@ -10,47 +10,80 @@ import pathlib
 
 cur_path = pathlib.Path(__file__).parent.absolute()
 
+alert_phone_nums = ["+15712769543", "+16462284704"]
+
+
 # twilio API
-tw_file = "{}/API_FILES/TWILIO_STUFF.json".format(cur_path)
-tw = ww.get_twilio(tw_file)
-alert_phone_nums = ["+16462284704", "+15712769543"]
+def get_twil():
+    tw_file = "{}/API_FILES/TWILIO_STUFF.json".format(cur_path)
+    return ww.get_twilio(tw_file)
+
 
 # Get API Key
-ether_file = "{}/API_FILES/ES_API_KEY_FILE.json".format(cur_path)
-with open(ether_file, 'r') as f:
-    es_key = json.loads(f.read())
+def get_api_key(rel_path):
+    ether_file = "{}/{}".format(cur_path, rel_path)
+    with open(ether_file, 'r') as f:
+        es_key = json.loads(f.read())
 
-api_key = es_key['ES_API_KEY']
-es = etherscan.Client(
-    api_key=api_key,
-    cache_expire_after=5,
-)
-uni_json = "{}/json_data/whale_uni_app.json".format(cur_path)
-whale_addys = ww.open_conf(uni_json)
+    return es_key['ES_API_KEY']
 
-whale_eth = ww.get_whale_eth_bal(whale_addys["addy"], 18, es)
-eth_usd = es.get_eth_price()['ethusd']
 
-req = "https://api.etherscan.io/api?module=account&action=" \
-      "txlistinternal&address={}&sort=asc&apikey={}".format(whale_addys["addy"], api_key)
-res = requests.get(req)
-tx_list = json.loads(res.text)['result']
-tx_list_len = len(tx_list)
-if whale_addys["tx_count"] < tx_list_len:
-    tx_hash_list = []
-    num_tx_to_check = tx_list_len - whale_addys["tx_count"]
-    print("num_tx_check: {}".format(num_tx_to_check))
-    for tx in tx_list[num_tx_to_check:]:
-        if tx['from'] == "0x7a250d5630b4cf539739df2c5dacb4c659f2488d":
-            tx_hash_list.append(tx['hash'])
+def get_es(api_key):
+    return etherscan.Client(
+        api_key=api_key,
+        cache_expire_after=5)
 
-    # addition = ""
-    # for hash in tx_hash_list:
-    #     addition += "hash: {}\n".format(hash)
-    message = "Whale {} has made {} purchase(s) on Uniswap!!\nhis ETH bal: {}\ncheck recent tx here: {}"\
-              .format(whale_addys["ytb_name"], num_tx_to_check, whale_eth, whale_addys["etherscan_link"])
-    for num in alert_phone_nums:
-        ww.send_sms(tw, message, num)
-    whale_addys["tx_count"] = tx_list_len
 
-ww.close_conf(uni_json, whale_addys)
+def op(rel_path):
+    uni_json = "{}/{}".format(cur_path, rel_path)
+    return ww.open_conf(uni_json)
+
+
+def check_wallets(wah, api_key, tw, alert_phone_nums):
+    es = get_es(api_key)
+    for whale in wah:
+        whale_eth = ww.get_whale_eth_bal(wah[whale]["addy"], 18, es)
+        req = "https://api.etherscan.io/api?module=account&action=txlist&address={}&apikey={}" \
+            .format(wah[whale]["addy"], api_key)
+        res = requests.get(req)
+        tx_list = json.loads(res.text)['result']
+        tx_list_len = len(tx_list)
+        print("tx_whale_ct: {}, tx_list_len: {}\n---------------".format(wah[whale]["tx_count"], tx_list_len))
+        if wah[whale]["tx_count"] < tx_list_len:  # do only if new transactions are present
+            tx_hash_list = []
+            uni_tx_ct = 0
+            num_tx_to_check = tx_list_len - wah[whale]["tx_count"]
+            for tx in tx_list[-num_tx_to_check:]:  # check only most recent transactions
+                if tx['to'] == "0x7a250d5630b4cf539739df2c5dacb4c659f2488d":  # if uniswap transaction
+                    uni_tx_ct += 1
+                    tx_hash_list.append("https://etherscan.io/tx/{}".format(tx['hash']))
+            addition = ""
+            for tx_link in tx_hash_list:  # add all tx hashes
+                addition += "\n{}\n-".format(tx_link)
+            message = "Whale {} has made {} purchase(s) on Uniswap!!\n" \
+                      "his ETH bal: {}\netherscan wallet link: {}\ntx details:{}" \
+                      .format(wah[whale]["ytb_name"], uni_tx_ct, whale_eth[:6], wah[whale]["etherscan_link"], addition)
+            print("message:\n{}\n***************************************************".format(message))
+            for num in alert_phone_nums:
+                ww.send_sms(tw, message, num)
+            wah[whale]["tx_count"] = tx_list_len  # update whale's tx count after processing
+        whale_uni_file = '{}/json_data/whale_uni_app.json'.format(cur_path)
+        ww.close_conf(whale_uni_file, wah)
+
+
+tw = get_twil()
+api_key = get_api_key('API_FILES/ES_API_KEY_FILE.json')
+whale_addys_hash = op('json_data/whale_uni_app.json')  # use relative path
+
+
+# scheduling section
+def job():
+    check_wallets(whale_addys_hash, api_key, tw, alert_phone_nums)
+
+
+schedule.every(5).minutes.do(job)
+
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
