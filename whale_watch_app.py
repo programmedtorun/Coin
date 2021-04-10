@@ -9,7 +9,7 @@ cur_path = pathlib.Path(__file__).parent.absolute()
 # configure whale_watch_app's query calls with time_segment and limit and phone numbers to alert
 tw_file = "{}/API_FILES/TWILIO_STUFF.json".format(cur_path)
 tw = ww.get_twilio(tw_file)
-alert_phone_nums = ["+16462284704", "+15712769543"]
+alert_phone_nums = ["+15712769543"]
 time_segment = 5
 limit = 50000
 
